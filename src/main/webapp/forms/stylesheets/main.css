@@ -1,0 +1,50 @@
+.text-label input{
+    background:rgba(0,0,0,0);
+    border:none;
+}
+
+.table-border table, th, td {
+    border: 1px solid black;
+}
+
+.overflow-auto {
+  overflow: auto;
+}
+
+.float-left {
+  float: left;
+}
+
+.display-inline {
+  display: inline;
+}
+
+.display-none {
+  display: none;
+}
+
+.float-right {
+  float: right;
+}
+
+.table-default table {
+  white-space: nowrap;
+}
+
+.table-default td {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.text-align-center {
+    text-align: center
+}
+
+.table-alternate-row-light{
+    background-color:#fff;
+}
+
+.table-alternate-row-dark{
+    background-color:#eee;
+}
