@@ -152,6 +152,14 @@ list-style-type: none;
        opacity: 1;
 }
 
+.table-selected {
+    background-color: #A79B9B;
+}
+
+.table-unselected {
+    background-color: white;
+}
+
 .inline-block {
 display: inline-block;
  vertical-align : middle;
