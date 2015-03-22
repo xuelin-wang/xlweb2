@@ -10,6 +10,7 @@
  * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
+
 .app {
   font-family: 'Muli', 'Helvetica Neue', helvetica, arial;
   margin: 20px auto;
@@ -98,7 +99,18 @@
   border: 1
 }
 
+.table-header-height {
+  height: 35px;
+}
+
+.header-down-size {
+  width: 35px;
+  height: 35px;
+}
+
 .inline-container {
+    border:1px solid black;
+ vertical-align : middle;
 }
 
 .leftEdge {
@@ -113,92 +125,46 @@
 }
 
 
-
-.clearfix:after {
-    display:block;
-    clear:both;
+.arrow-left {
+display: inline; float: left;
+ vertical-align : middle;
+ cursor: pointer;
 }
 
-/*----- simple-menu Outline -----*/
-.simple-menu-wrap {
-    width:100%;
-    box-shadow:0px 1px 3px rgba(0,0,0,0.2);
-    background:#3e3436;
+.arrow-right {
+display: inline; float: right;
+ vertical-align : middle;
+ cursor: pointer;
 }
 
-.simple-menu {
-    width:1000px;
-    margin:0px auto;
+.xlTable{
+    border:1px solid black;
 }
 
-.simple-menu li {
-    margin:0px;
-    list-style:none;
-    font-family:'Ek Mukta';
+.xlTable th td{
+    border:1px solid black;
 }
 
-.simple-menu span {
-    transition:all linear 0.15s;
-    color:#919191;
+.table-header-menu {
+    position: relative;
+    display: inline-block;
+list-style-type: none;
+       opacity: 1;
 }
 
-.simple-menu li:hover > a, .simple-menu .current-item > span {
-    text-decoration:none;
-    color:#be5b70;
+.inline-block {
+display: inline-block;
+ vertical-align : middle;
 }
 
-.simple-menu .arrow {
-    font-size:11px;
-    line-height:0%;
+.no-style-type{
+list-style-type: none;
+padding-left: 0px;
 }
 
-/*----- Top Level -----*/
-.simple-menu > ul > li {
-    float:left;
-    display:inline-block;
-    position:relative;
-    font-size:19px;
-}
-
-.simple-menu > ul > li > span {
-    padding:10px 40px;
-    display:inline-block;
-    text-shadow:0px 1px 0px rgba(0,0,0,0.4);
-}
-
-.simple-menu > ul > li:hover > a, .simple-menu > ul > .current-item > span {
-    background:#2e2728;
-}
-
-/*----- Bottom Level -----*/
-.simple-menu li:hover .sub-simple-menu {
-    z-index:1;
-    opacity:1;
-}
-
-.sub-simple-menu {
-    width:160%;
-    padding:5px 0px;
-    position:absolute;
-    top:100%;
-    left:0px;
-    z-index:-1;
-    opacity:0;
-    transition:opacity linear 0.15s;
-    box-shadow:0px 2px 3px rgba(0,0,0,0.2);
-    background:#2e2728;
-}
-
-.sub-simple-menu li {
-    display:block;
-    font-size:16px;
-}
-
-.sub-simple-menu li a {
-    padding:10px 30px;
-    display:block;
-}
-
-.sub-simple-menu li a:hover, .sub-simple-menu .current-item a {
-    background:#3e3436;
+.table-header-menu li {
+    position: absolute;
+    display: none;
+    z-index: 10;
+    opacity: 1;
 }
