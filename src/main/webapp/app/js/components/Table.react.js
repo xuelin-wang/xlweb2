@@ -308,7 +308,9 @@ var TableDataRow = React.createClass({
             centerClassNames += ' table-unselected';
 
         var getCellSpec = getProperty(table.props, 'getCellSpec', null);
-        var cellSpec = (getCellSpec == null) ? {} : getCellSpec.get(rowIndex, colIndex);
+        var cellSpec = (getCellSpec == null) ? {} : getCellSpec(rowIndex, colIndex);
+        if (cellSpec == null)
+            cellSpec = {};
 
         var type = getProperty(cellSpec, "type", null);
         var cellStyle;
@@ -328,6 +330,7 @@ var TableDataRow = React.createClass({
             }
             var cellKey = toCellStringKey(rowIndex, colIndex);
             newChanges[cellKey] = val;
+            console.log('Will send change for cell: ' + cellKey + ' with value: ' + val);
             table.setState({data: newChanges});
         };
 

@@ -65,9 +65,41 @@ var ContentSection = React.createClass({
         tableData.push(row);
     }
 
+    var getCellSpec = function(rowIndex, colIndex){
+        if (rowIndex == 1 && colIndex == 4) {
+            var spec = {
+                type: 'input',
+                style: {
+                    width: '40px'
+                }
+            };
+            return spec;
+        }
+        else if (rowIndex == 1 && colIndex == 5) {
+            var spec = {
+                type: 'select',
+                options: [
+                  ['cell 1 1a'], ['cell 1 1'], ['cell 1 1b', 'cell 1 1 updated']
+                ]
+            };
+            return spec;
+        }
+        else if (colIndex == 6) {
+            var spec = {
+                type: 'input',
+                style: {
+                    width: '40px'
+                }
+            };
+            return spec;
+        }
+        else
+            return null;
+    };
+
     return (
       <div className="content-section">
-        <Table header={tableHeader} data={tableData} className='super-table'>
+        <Table header={tableHeader} data={tableData} getCellSpec={getCellSpec} className='super-table'>
         </Table>
       </div>
     );
