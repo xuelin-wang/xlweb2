@@ -41,15 +41,34 @@ var ContentSection = React.createClass({
 
   render: function() {
     var tableHeader = ["firsdddddddddt name", "last name", "address", "sex"];
-    var tableData = [
-    ['Charles', 'w666666666666666666666666666666666ang', 'abcd efgh', 'M'],
-    ['Tom', 'Carlson', '1234 5ddddddddddddddddddddddddddddddddddddd678', 'M']
-    ];
+    for (var index = 0; index < 40; index++) {
+        tableHeader.push("Column " + index);
+    }
+    var tableData = [];
+    var row0 = ['Charles', 'w666666666666666666666666666666666ang', 'abcd efgh', 'M'];
+    for (var index = 0; index < 40; index++) {
+        row0.push('cell 0 ' + index);
+    }
+    tableData.push(row0);
+    var row1 = ['Tom', 'Bradly', '1234 5ddddddddddddddddddddddddddddddddddddd678', 'M'];
+    for (var index = 0; index < 40; index++) {
+        row1.push('cell 1 ' + index);
+    }
+    tableData.push(row1);
+
+    for (var index = 0; index < 40; index++) {
+        var prefix = 'cell ' + index + ' ';
+        var row = [];
+        for (var colIndex = 0; colIndex < 44; colIndex++) {
+            row.push(prefix + colIndex);
+        }
+        tableData.push(row);
+    }
+
     return (
       <div className="content-section">
-        <Table header={tableHeader} data={tableData}>
+        <Table header={tableHeader} data={tableData} className='super-table'>
         </Table>
-        <MessageComposer threadID={this.state.thread.id}/>
       </div>
     );
   },

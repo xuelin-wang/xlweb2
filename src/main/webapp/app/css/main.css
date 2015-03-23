@@ -14,7 +14,7 @@
 .app {
   font-family: 'Muli', 'Helvetica Neue', helvetica, arial;
   margin: 20px auto;
-  overflow: hidden;
+  overflow: auto;
 }
 
 .message-list, .thread-list {
@@ -137,11 +137,12 @@ display: inline; float: right;
  cursor: pointer;
 }
 
-.xlTable{
+.super-table{
     border:1px solid black;
+    overflow: auto;
 }
 
-.xlTable th td{
+.super-table th td{
     border:1px solid black;
 }
 

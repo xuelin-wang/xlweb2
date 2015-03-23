@@ -106,11 +106,6 @@ var TableHeader = React.createClass({
             table.setState({hiddenColumnRanges: newRanges});
         };
 
-        var selectCells = function(rowFrom, colFrom, rowTo, colTo)
-        {
-            table.setState({selectedIndices: [rowFrom, colFrom, rowTo, colTo]});
-        }
-
         var leftArrowStr = '\u25c0';
         var showLeftArrow = false;
         var showRightArrow = false;
@@ -288,9 +283,21 @@ var checkSelected = function(rowIndex, colIndex, selectedIndices)
     return inSelectedRows && inSelectedCols;
 }
 
+
+var toCellStringKey = function(rowIndex, colIndex) {
+      return '' + rowIndex + '_' + colIndex;
+}
+
+
 var TableDataRow = React.createClass({
   render: function() {
     var table = this.props.table;
+
+        var selectCells = function(rowFrom, colFrom, rowTo, colTo)
+        {
+            table.setState({selectedIndices: [rowFrom, colFrom, rowTo, colTo]});
+        }
+
 
     var defaultDataCellRenderer = function(col, colIndex, rowIndex) {
         var isSelected = checkSelected(rowIndex, colIndex, table.state.selectedIndices);
@@ -299,11 +306,68 @@ var TableDataRow = React.createClass({
             centerClassNames += ' table-selected';
         else
             centerClassNames += ' table-unselected';
-        return (
-          <td  key={colIndex} className='inline-container'><span className='leftEdge'> </span><span  className={centerClassNames}>{col}</span>
-         <span className='rightEdge'></span>
-          </td>
-        );
+
+        var getCellSpec = getProperty(table.props, 'getCellSpec', null);
+        var cellSpec = (getCellSpec == null) ? {} : getCellSpec.get(rowIndex, colIndex);
+
+        var type = getProperty(cellSpec, "type", null);
+        var cellStyle;
+        cellStyle = getProperty(cellSpec, "style", {});
+        var handleChange = function(event) {
+            var val = event.target.value;
+            var changes = table.state.data;
+            var newChanges = {};
+            if (changes != null) {
+                for (var key in changes) {
+                    if(!changes.hasOwnProperty(key))
+                    {
+                        continue;
+                    }
+                    newChanges[key] = changes[key];
+                }
+            }
+            var cellKey = toCellStringKey(rowIndex, colIndex);
+            newChanges[cellKey] = val;
+            table.setState({data: newChanges});
+        };
+
+        if (type == 'input') {
+            return (
+              <td  key={colIndex} className='inline-container' style={cellStyle} >
+                  <input
+                      value={col}
+                      className={centerClassNames}
+                      onChange={handleChange}
+                      ></input>
+              </td>
+            );
+        }
+        else if (type == 'select') {
+            var renderedOptions = cellSpec.options.map(
+                                    function(opt, optIndex, opts) {
+                                        return (
+                                            <option value={opt[0]}>{(opt.length > 1) ? opt[1] : opt[0]}</option>
+                                        );
+                                    }, table
+                                );
+            return (
+              <td  key={colIndex} className='inline-container' style={cellStyle} >
+                  <select
+                      className={centerClassNames}
+                      value={col}
+                      onChange={handleChange}
+                  >
+{renderedOptions}
+                  </select>
+              </td>
+            );
+        }
+        else {
+            return (
+              <td  onClick={selectCells.bind(null, rowIndex, colIndex, rowIndex, colIndex)} key={colIndex} className='inline-container' style={cellStyle} ><span  className={centerClassNames}>{col}</span>
+              </td>
+            );
+        }
     };
 
     var tableGetDataCellRenderer = getProperty(table, "getDataCellRenderer", null);
@@ -341,8 +405,39 @@ var Table = React.createClass({
     return initState;
   },
 
+  getCellData: function(rowIndex, colIndex) {
+    var origData = this.props.data;
+    var changes = getProperty(this.state, "data", {});
+    var key = toCellStringKey(rowIndex, colIndex);
+    var val;
+    if (key in changes)
+        val = changes[key];
+    else
+        val = origData[rowIndex][colIndex];
+    return val;
+  },
+
+  getRowData: function(rowIndex) {
+    var rowLen = this.props.data[0].length;
+    var row = [];
+    for (var index = 0; index < rowLen; index++) {
+        row.push(this.getCellData(rowIndex, index));
+    }
+    return row;
+  },
+
+  getData: function() {
+    var rowLen = this.props.data.length;
+    var colLen = this.props.data[0].length;
+    var data = [];
+    for (var rowIndex = 0; rowIndex < rowLen; rowIndex++) {
+        data.push(this.getRowData(rowIndex));
+    }
+    return data;
+  },
+
   render: function() {
-    var dataRows = this.props.data;
+    var dataRows = this.getData();
     var renderedRows =
         dataRows.map(function(row, rowIndex, arr) {
         return (
@@ -351,7 +446,7 @@ var Table = React.createClass({
             );
         }, this
         );
-    var tableClassName = 'xlTable';
+    var tableClassName = getProperty(this.props, 'className', '');
     return (
       <table className={tableClassName}>
         <TableHeader table={this}>

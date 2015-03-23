@@ -19,8 +19,6 @@ var AppUi = React.createClass({
   render: function() {
     return (
       <div className="app">
-        <LinkSection />
-        <br></br>
         <ContentSection />
       </div>
     );
