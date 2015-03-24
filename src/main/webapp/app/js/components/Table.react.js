@@ -14,6 +14,7 @@ var React = require('react');
 var getProperty = require("../utils/CommonUtils").getProperty;
 var DropdownButton = require('react-bootstrap').DropdownButton;
 var MenuItem = require('react-bootstrap').MenuItem;
+var Modal = require('react-modal');
 
 var ReactPropTypes = React.PropTypes;
 
@@ -74,6 +75,20 @@ var addHiddenColumn = function(fromColIndex, toColIndex, hiddenRanges)
 }
 
 var TableHeader = React.createClass({
+
+
+  getInitialState: function() {
+    return { openModalIndex: -1 };
+  },
+
+  openModal: function(index) {
+    this.setState({openModalIndex: index});
+  },
+
+  closeModal: function() {
+    this.setState({openModalIndex: -1});
+  },
+
   render: function() {
     var table = this.props.table;
     var header = getProperty(table.props, "header", null);
@@ -83,11 +98,14 @@ var TableHeader = React.createClass({
         );
     }
 
+    var tableHeader = this;
+
     var defaultHeaderCellRenderer = function(col, colIndex) {
-        var onMouseOver = function(index) {
-            table.setState({activeHeaderIndex: index});
-        };
-        var onMouseOut = function(index) {
+        var onMouseOver = function(event) {
+            table.setState({
+                activeHeaderIndex: colIndex,
+                selectingColumnEndIndex: colIndex
+            });
         };
 
         var showColumns = function(leftOrRight){
@@ -106,7 +124,6 @@ var TableHeader = React.createClass({
             table.setState({hiddenColumnRanges: newRanges});
         };
 
-        var leftArrowStr = '\u25c0';
         var showLeftArrow = false;
         var showRightArrow = false;
         var hiddenRanges = table.state.hiddenColumnRanges;
@@ -120,86 +137,152 @@ var TableHeader = React.createClass({
             }
         }
 
+        var leftArrowStr = '\u25c0';
+        var leftAndDown1;
         if (showLeftArrow) {
-            leftArrow = (
-            <section  className='arrow-left table-header-height'>
-                  <span onClick={showColumns.bind(table, true)}>{leftArrowStr}</span>
-                  </section>
-                  );
+            leftAndDown1 = (
+            <span onClick={showColumns.bind(table, false)}>{leftArrowStr}</span>
+            );
         }
         else {
-            leftArrow = (
-            <section  className='arrow-left table-header-height'>
-                  <img src='images/transparent16_35.png'></img>
-                  </section>
-              );
+            leftAndDown1 = (
+            <img src='images/transparent16_35.png' ></img>
+            );
         }
 
-        var showDownArrow = (colIndex == table.state.activeHeaderIndex);
-//        var downArrowStr = '\u25bc';
-        var hideColumns = function(){
-            var newHiddenRanges = table.state.hiddenColumnRanges.slice(0);
-            var selectedIndices = table.state.selectedIndices;
-            var fromCol = selectedIndices[1];
-            var toCol = selectedIndices[3];
-            addHiddenColumn(fromCol, toCol, newHiddenRanges);
-            table.setState(
-            {
-                hiddenColumnRanges: newHiddenRanges,
-                selectingColumnIndex: -1,
-                selectedIndices: [-1, -1, -1, -1],
-                inHeaderMenu: -1
-            }
-            );
-        };
 
         var startHeaderButton = function(colIndex) {
             table.setState({inHeaderMenu: colIndex});
         };
 
-        var downArrowButton = (
-            <DropdownButton bsStyle='link' onMouseDown={startHeaderButton.bind(table, colIndex)} className='header-down-size' title='' key={0}>
-                <MenuItem onClick={hideColumns} >Hide Column(s)</MenuItem>
-            </DropdownButton>
-        );
-
-        var rightArrowStr = '\u25b6';
-        var downAndRightArrow;
-        if (!showDownArrow && !showRightArrow) {
-            downAndRightArrow = (
-            <section className='arrow-right table-header-height'>
-             <img src='images/transparent35.png' ></img>
-              <img src='images/transparent16_35.png' ></img>
-              </section>
-              );
-        }
-        else if (!showDownArrow) {
-            downAndRightArrow = (
-            <section className='arrow-right table-header-height'>
-             <img src='images/transparent35.png' ></img>
-             <span onClick={showColumns.bind(table, false)}>{rightArrowStr}</span>
-              </section>
+        var showDownArrow = (colIndex == table.state.activeHeaderIndex);
+        var leftAndDown2;
+        var hideColumns = function(){
+            var newHiddenRanges = table.state.hiddenColumnRanges.slice(0);
+            var selectedIndices = table.state.selectedIndices;
+            var fromCol = selectedIndices[1]
+            var toCol = selectedIndices[3];
+            addHiddenColumn(fromCol, toCol, newHiddenRanges);
+            table.setState(
+            {
+                hiddenColumnRanges: newHiddenRanges,
+                selectingColumnStartIndex: -1,
+                selectedIndices: [-1, -1, -1, -1],
+                inHeaderMenu: -1
+            }
             );
-        }
-        else if (!showRightArrow) {
-            downAndRightArrow = (
-            <section className='arrow-right table-header-height'>
-             {downArrowButton}
-              <img src='images/transparent16_35.png'></img>
-              </section>
+        };
+        if (showDownArrow) {
+            leftAndDown2 = (
+                <DropdownButton bsStyle='link' onMouseDown={startHeaderButton.bind(table, colIndex)} className='header-down-size' title='' key={0}>
+                    <MenuItem onClick={hideColumns} >Hide Column(s)</MenuItem>
+                </DropdownButton>
             );
         }
         else {
-            downAndRightArrow = (
-            <section className='arrow-right table-header-height'>
-             {downArrowButton}
-             <span onClick={showColumns.bind(table, false)}>{rightArrowStr}</span>
-              </section>
+            leftAndDown2 = (
+             <img src='images/transparent35.png' ></img>
             );
         }
 
+        var leftAndDownArrow = (
+            <section className='arrow-left table-header-height'>
+                {leftAndDown1}
+                {leftAndDown2}
+              </section>
+              );
+
+
+//        var downArrowStr = '\u25bc';
+
+        var rightArrowStr = '\u25b6';
+        var downAndRight1;
+        var showFilterArrow = table.state.isFilter;
+        if (showFilterArrow) {
+             var tableData = table.getData();
+             var hasBlank = false;
+             var colVals = [];
+             for (var rowIndex = 0; rowIndex < tableData.length; rowIndex++) {
+                 var rowData = tableData[rowIndex];
+                 if (rowData != null && rowData.length > colIndex) {
+                     var colVal = rowData[colIndex];
+                     if (colVal == null || colVal.trim().length == 0)
+                         hasBlank = true;
+                     else {
+                         colVals.push(colVal.toLowerCase());
+                     }
+                 }
+                 else {
+                     hasBlank = true;
+                 }
+             }
+             colVals.sort();
+             for (var index = colVals.length - 1; index > 0; index--) {
+                 if (colVals[index] == colVals[index - 1]) {
+                     colVals.splice(index, 1);
+                 }
+             }
+
+             var filterChanged = function(colIndex, colVal) {
+             };
+             var valsCheckboxes = colVals.map(function(colVal, index, arr) {
+                 return  (
+                    <div key={index} className='checkbox'> <label><input type="checkbox" onChange={filterChanged.bind(table, colIndex, colVal)}>{colVal}</input></label></div>
+                );
+
+             });
+
+
+        var filterArrowDown = function(colIndex) {
+            table.setState(
+                {
+                inHeaderMenu: colIndex
+                }
+            );
+
+            tableHeader.setState(
+                {openModalIndex: colIndex}
+            );
+        };
+
+
+            downAndRight1 = (
+                <DropdownButton bsStyle='link' onMouseDown={filterArrowDown.bind(table, colIndex)} className='header-down-size' title='' key={0}>
+        <Modal
+          isOpen={tableHeader.state.openModalIndex == colIndex}
+          onRequestClose={tableHeader.closeModal}
+        >
+            {valsCheckboxes}
+        </Modal>
+                </DropdownButton>
+            );
+        }
+        else {
+            downAndRight1 = (
+             <img src='images/transparent35.png' ></img>
+            );
+        }
+        var downAndRight2;
+        if (showRightArrow) {
+            downAndRight2 = (
+            <span onClick={showColumns.bind(table, false)}>{rightArrowStr}</span>
+            );
+        }
+        else {
+            downAndRight2 = (
+            <img src='images/transparent16_35.png' ></img>
+            );
+        }
+
+        var downAndRightArrow = (
+            <section className='arrow-right table-header-height'>
+                {downAndRight1}
+                {downAndRight2}
+              </section>
+              );
+
         var startSelectingCols = function(colIndex) {
-            table.setState({selectingColumnIndex: colIndex});
+            table.setState({selectingColumnStartIndex: colIndex});
         }
 
         var endSelectingCols = function(colIndex) {
@@ -210,11 +293,11 @@ var TableHeader = React.createClass({
             fromCol = selectedIndices[1];
             toCol = selectedIndices[3];
             if (fromCol >= 0 && inHeaderMenu >= fromCol && (toCol < 0 || toCol >= inHeaderMenu)) {
-                table.setState({selectingColumnIndex: -1});
+                table.setState({selectingColumnStartIndex: -1});
                 return;
             }
 
-            var currSelectingIndex = table.state.selectingColumnIndex;
+            var currSelectingIndex = table.state.selectingColumnStartIndex;
             if (currSelectingIndex < 0)
                 return;
 
@@ -232,13 +315,24 @@ var TableHeader = React.createClass({
             table.setState(
             {
                 selectedIndices: [0, fromCol, -1, toCol],
-                selectingColumnIndex: -1
+                selectingColumnStartIndex: -1
             });
         }
 
+        var classNames = 'inline-container unselectable ';
+        if (table.state.selectingColumnStartIndex >= 0 &&
+            (table.state.selectingColumnStartIndex <= colIndex && table.state.selectingColumnEndIndex >= colIndex ||
+            table.state.selectingColumnStartIndex >= colIndex && table.state.selectingColumnEndIndex <= colIndex)
+            ) {
+            classNames += 'table-selected';
+        }
+        else {
+            classNames += 'table-unselected';
+        }
+
         return (
-          <td key={colIndex} onMouseDown={startSelectingCols.bind(table, colIndex)} onMouseUp = {endSelectingCols.bind(table, colIndex)} onMouseOver={onMouseOver.bind(table, colIndex)} onMouseOut={onMouseOut.bind(table, colIndex)} className='inline-container unselectable'>
-          {leftArrow}
+          <td key={colIndex} onMouseDown={startSelectingCols.bind(table, colIndex)} onMouseUp = {endSelectingCols.bind(table, colIndex)} onMouseOver={onMouseOver} className={classNames}>
+          {leftAndDownArrow}
           <section className='inline-block table-header-height'>
           <b>{col}</b>
           </section>
@@ -349,7 +443,7 @@ var TableDataRow = React.createClass({
             var renderedOptions = cellSpec.options.map(
                                     function(opt, optIndex, opts) {
                                         return (
-                                            <option value={opt[0]}>{(opt.length > 1) ? opt[1] : opt[0]}</option>
+                                            <option key={optIndex} value={opt[0]}>{(opt.length > 1) ? opt[1] : opt[0]}</option>
                                         );
                                     }, table
                                 );
@@ -400,9 +494,10 @@ var Table = React.createClass({
   getInitialState: function() {
     var initState =
         {
+            isFilter: false,
             activeHeaderIndex: -1,
             hiddenColumnRanges: [],
-            selectingColumnIndex: -1,
+            selectingColumnStartIndex: -1,
             selectedIndices: [-1, -1, -1, -1]
         };
     return initState;
@@ -440,6 +535,7 @@ var Table = React.createClass({
   },
 
   render: function() {
+    var table = this;
     var dataRows = this.getData();
     var renderedRows =
         dataRows.map(function(row, rowIndex, arr) {
@@ -450,12 +546,28 @@ var Table = React.createClass({
         }, this
         );
     var tableClassName = getProperty(this.props, 'className', '');
+    var onMouseUp = function(event) {
+        table.setState({
+            selectingColumnStartIndex: -1
+        });
+    };
+
+    var isFilterChanged = function(event) {
+        table.setState({
+            isFilter: event.target.checked
+        });
+
+    };
+
     return (
-      <table className={tableClassName}>
+    <div>
+      <div className='checkbox'> <label><input type="checkbox" onChange={isFilterChanged} value={this.state.isFilter}>Filter</input></label></div>
+      <table onMouseUp={onMouseUp} className={tableClassName}>
         <TableHeader table={this}>
         </TableHeader>
         {renderedRows}
       </table>
+    </div>
     );
   }
 
