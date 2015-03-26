@@ -13,8 +13,10 @@
 var React = require('react');
 var getProperty = require("../utils/CommonUtils").getProperty;
 var DropdownButton = require('react-bootstrap').DropdownButton;
+var Button = require('react-bootstrap').Button;
 var MenuItem = require('react-bootstrap').MenuItem;
-var Modal = require('react-modal');
+var Modal = require('react-bootstrap').Modal;
+var ModalTrigger = require('react-bootstrap').ModalTrigger;
 
 var ReactPropTypes = React.PropTypes;
 
@@ -78,15 +80,7 @@ var TableHeader = React.createClass({
 
 
   getInitialState: function() {
-    return { openModalIndex: -1 };
-  },
-
-  openModal: function(index) {
-    this.setState({openModalIndex: index});
-  },
-
-  closeModal: function() {
-    this.setState({openModalIndex: -1});
+      return {};
   },
 
   render: function() {
@@ -193,7 +187,6 @@ var TableHeader = React.createClass({
               );
 
 
-//        var downArrowStr = '\u25bc';
 
         var rightArrowStr = '\u25b6';
         var downAndRight1;
@@ -223,15 +216,6 @@ var TableHeader = React.createClass({
                  }
              }
 
-             var filterChanged = function(colIndex, colVal) {
-             };
-             var valsCheckboxes = colVals.map(function(colVal, index, arr) {
-                 return  (
-                    <div key={index} className='checkbox'> <label><input type="checkbox" onChange={filterChanged.bind(table, colIndex, colVal)}>{colVal}</input></label></div>
-                );
-
-             });
-
 
         var filterArrowDown = function(colIndex) {
             table.setState(
@@ -245,16 +229,33 @@ var TableHeader = React.createClass({
             );
         };
 
+             var filterChanged = function(colIndex, colVal) {
+             
+             };
 
+        var colValsList = colVals.map(
+                    function(colVal, index, arr) {
+                        return (
+                        <li>
+                        <label><input type="checkbox" onChange={filterChanged.bind(table, colIndex, colVal)}>{colVal}</input></label>
+                        </li>
+                        );
+                    }
+                );
+
+        var colValsListNode = (
+            <ul>{colValsList}</ul>
+        );
+
+        var myModal = (
+            <Modal>{colValsListNode}
+            </Modal>
+        );
+        var downArrowStr = '\u25bc';
             downAndRight1 = (
-                <DropdownButton bsStyle='link' onMouseDown={filterArrowDown.bind(table, colIndex)} className='header-down-size' title='' key={0}>
-        <Modal
-          isOpen={tableHeader.state.openModalIndex == colIndex}
-          onRequestClose={tableHeader.closeModal}
-        >
-            {valsCheckboxes}
-        </Modal>
-                </DropdownButton>
+ <ModalTrigger modal={myModal}>
+    <Button bsStyle='link' className='header-down-size' bsSize='large'>{downArrowStr}</Button>
+  </ModalTrigger>
             );
         }
         else {
