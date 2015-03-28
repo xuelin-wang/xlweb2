@@ -114,6 +114,13 @@
  vertical-align : middle;
 }
 
+.table-header-cell {
+ border:1px solid black;
+ vertical-align : middle;
+ position: relative;
+ left: 0px;
+}
+
 .leftEdge {
 }
 
@@ -128,14 +135,15 @@
 
 .arrow-left {
 display: inline; float: left;
- vertical-align : middle;
  cursor: pointer;
+ width: 10px;
 }
 
 .arrow-right {
 display: inline; float: right;
  vertical-align : middle;
  cursor: pointer;
+ width: 30px;
 }
 
 .super-table{
@@ -147,13 +155,6 @@ display: inline; float: right;
     border:1px solid black;
 }
 
-.table-header-menu {
-    position: relative;
-    display: inline-block;
-list-style-type: none;
-       opacity: 1;
-}
-
 .table-selected {
     background-color: #A79B9B;
 }
@@ -161,6 +162,13 @@ list-style-type: none;
 .table-unselected {
     background-color: white;
 }
+
+.table-header-center {
+display: inline-block;
+position: absolute;
+top: 10px;
+left: 20px;
+ }
 
 .inline-block {
 display: inline-block;
@@ -172,13 +180,6 @@ list-style-type: none;
 padding-left: 0px;
 }
 
-.table-header-menu li {
-    position: absolute;
-    display: none;
-    z-index: 10;
-    opacity: 1;
-}
-
 
 .unselectable {
   -webkit-user-select: none;  /* Chrome all / Safari all */
@@ -188,4 +189,37 @@ padding-left: 0px;
   /* No support for these yet, use at own risk */
   -o-user-select: none;
   user-select: none;
+}
+
+.table-filter-container {
+    max-height: 60px;
+    max-width: 60px;
+}
+
+.display-none {
+    display: none;
+}
+
+.table-header-menu {  /* Box in the button */
+    display: inline;
+  width: 35px;
+  height: 35px;
+}
+
+.table-header-menu .top {  /* Box in the button */
+}
+
+.table-header-menu ul {
+    list-style-type: none;  /* Remove the bullets from the list */
+}
+
+.table-header-menu ul li.item {
+        width: 60px;
+        display: none;  /* By default, do not display the items (which contains the links) */
+}
+
+.table-header-menu ul:hover .item {  /* When the user hovers over the button (or any of the links) */
+    display: block;
+    border: 1px solid black;
+    background-color: #EDC;
 }

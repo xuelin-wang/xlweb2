@@ -80,8 +80,14 @@ var TableHeader = React.createClass({
 
 
   getInitialState: function() {
-      return {};
+    var initState =
+        {
+            activeHeaderIndex: -1,
+            selectingColumnStartIndex: -1,
+        };
+    return initState;
   },
+
 
   render: function() {
     var table = this.props.table;
@@ -94,16 +100,16 @@ var TableHeader = React.createClass({
 
     var tableHeader = this;
 
-    var defaultHeaderCellRenderer = function(col, colIndex) {
+    var defaultHeaderCellRenderer = function(col, colIndex, hidden) {
         var onMouseOver = function(event) {
-            table.setState({
+            tableHeader.setState({
                 activeHeaderIndex: colIndex,
                 selectingColumnEndIndex: colIndex
             });
         };
 
         var showColumns = function(leftOrRight){
-            var hiddenRanges = table.state.hiddenColumnRanges;
+            var hiddenRanges = tableHeader.props.hiddenColumnRanges;
             var rangeIndex = -1;
             for (var index = 0; index < hiddenRanges.length; index++) {
                 var thisRange = hiddenRanges[index];
@@ -120,7 +126,7 @@ var TableHeader = React.createClass({
 
         var showLeftArrow = false;
         var showRightArrow = false;
-        var hiddenRanges = table.state.hiddenColumnRanges;
+        var hiddenRanges = tableHeader.props.hiddenColumnRanges;
         for (var index = 0; index < hiddenRanges.length; index++) {
             var range = hiddenRanges[index];
             if (colIndex == range[0] - 1) {
@@ -149,11 +155,11 @@ var TableHeader = React.createClass({
             table.setState({inHeaderMenu: colIndex});
         };
 
-        var showDownArrow = (colIndex == table.state.activeHeaderIndex);
+        var showDownArrow = (colIndex == tableHeader.state.activeHeaderIndex);
         var leftAndDown2;
         var hideColumns = function(){
-            var newHiddenRanges = table.state.hiddenColumnRanges.slice(0);
-            var selectedIndices = table.state.selectedIndices;
+            var newHiddenRanges = tableHeader.props.hiddenColumnRanges.slice(0);
+            var selectedIndices = tableHeader.props.selectedIndices;
             var fromCol = selectedIndices[1]
             var toCol = selectedIndices[3];
             addHiddenColumn(fromCol, toCol, newHiddenRanges);
@@ -166,11 +172,17 @@ var TableHeader = React.createClass({
             }
             );
         };
+
+        var downArrowStr = '\u25bc';
+
         if (showDownArrow) {
             leftAndDown2 = (
-                <DropdownButton bsStyle='link' onMouseDown={startHeaderButton.bind(table, colIndex)} className='header-down-size' title='' key={0}>
-                    <MenuItem onClick={hideColumns} >Hide Column(s)</MenuItem>
-                </DropdownButton>
+                <div className='table-header-menu'>
+                <ul>
+                <li className='top'>{downArrowStr}</li>
+                <li className='item' onClick={hideColumns} >Hide Column(s)</li>
+                </ul>
+                </div>
             );
         }
         else {
@@ -248,14 +260,18 @@ var TableHeader = React.createClass({
         );
 
         var myModal = (
-            <Modal>{colValsListNode}
-            </Modal>
+            <dialog styleName='table-filter-container'>
+            {colValsListNode}
+            </dialog>
         );
-        var downArrowStr = '\u25bc';
+        var showFilterList = function(event) {
+
+
+
+        };
+
             downAndRight1 = (
- <ModalTrigger modal={myModal}>
-    <Button bsStyle='link' className='header-down-size' bsSize='large'>{downArrowStr}</Button>
-  </ModalTrigger>
+    <Button bsStyle='link' onClick={showFilterList} className='header-down-size' bsSize='large'>{downArrowStr}</Button>
             );
         }
         else {
@@ -287,16 +303,11 @@ var TableHeader = React.createClass({
         }
 
         var endSelectingCols = function(colIndex) {
-            var inHeaderMenu = table.state.inHeaderMenu;
-            var selectedIndices = table.state.selectedIndices;
+            var selectedIndices = tableHeader.props.selectedIndices;
             var fromCol;
             var toCol;
             fromCol = selectedIndices[1];
             toCol = selectedIndices[3];
-            if (fromCol >= 0 && inHeaderMenu >= fromCol && (toCol < 0 || toCol >= inHeaderMenu)) {
-                table.setState({selectingColumnStartIndex: -1});
-                return;
-            }
 
             var currSelectingIndex = table.state.selectingColumnStartIndex;
             if (currSelectingIndex < 0)
@@ -320,8 +331,11 @@ var TableHeader = React.createClass({
             });
         }
 
-        var classNames = 'inline-container unselectable ';
-        if (table.state.selectingColumnStartIndex >= 0 &&
+        var classNames = 'table-header-cell unselectable ';
+
+        if (hidden)
+            classNames = 'display-none';
+        else if (tableHeader.props.selectingColumnStartIndex >= 0 &&
             (table.state.selectingColumnStartIndex <= colIndex && table.state.selectingColumnEndIndex >= colIndex ||
             table.state.selectingColumnStartIndex >= colIndex && table.state.selectingColumnEndIndex <= colIndex)
             ) {
@@ -334,7 +348,7 @@ var TableHeader = React.createClass({
         return (
           <td key={colIndex} onMouseDown={startSelectingCols.bind(table, colIndex)} onMouseUp = {endSelectingCols.bind(table, colIndex)} onMouseOver={onMouseOver} className={classNames}>
           {leftAndDownArrow}
-          <section className='inline-block table-header-height'>
+          <section className='table-header-center table-header-height'>
           <b>{col}</b>
           </section>
           {downAndRightArrow}
@@ -346,14 +360,13 @@ var TableHeader = React.createClass({
 
     var renderedCols = header.map(
       function(col, index, arr) {
-        if (isColumnHidden(index, table.state.hiddenColumnRanges))
-            return '';
+        var hidden = isColumnHidden(index, tableHeader.props.hiddenColumnRanges);
         var headerCellRenderer = null;
         if (tableGetHeaderCellRenderer != null)
             headerCellRenderer = tableGetHeaderCellRenderer.get(index);
         if (headerCellRenderer == null)
             headerCellRenderer = defaultHeaderCellRenderer;
-        return headerCellRenderer.call(table, col, index);
+        return headerCellRenderer.call(table, col, index, hidden);
       },
       table
     );
@@ -393,9 +406,9 @@ var TableDataRow = React.createClass({
             table.setState({selectedIndices: [rowFrom, colFrom, rowTo, colTo]});
         }
 
-
-    var defaultDataCellRenderer = function(col, colIndex, rowIndex) {
-        var isSelected = checkSelected(rowIndex, colIndex, table.state.selectedIndices);
+    var tableDataRow = this;
+    var defaultDataCellRenderer = function(col, colIndex, rowIndex, hidden) {
+        var isSelected = checkSelected(rowIndex, colIndex, tableDataRow.props.selectedIndices);
         var centerClassNames = 'center-main';
         if (isSelected)
             centerClassNames += ' table-selected';
@@ -429,9 +442,11 @@ var TableDataRow = React.createClass({
             table.setState({data: newChanges});
         };
 
+        var tdClassNames = hidden ? 'display-none' : '';
+
         if (type == 'input') {
             return (
-              <td  key={colIndex} className='inline-container' style={cellStyle} >
+              <td  key={colIndex} className='inline-container' style={cellStyle} className={tdClassNames}>
                   <input
                       value={col}
                       className={centerClassNames}
@@ -449,7 +464,7 @@ var TableDataRow = React.createClass({
                                     }, table
                                 );
             return (
-              <td  key={colIndex} className='inline-container' style={cellStyle} >
+              <td  key={colIndex} className='inline-container' style={cellStyle}  className={tdClassNames}>
                   <select
                       className={centerClassNames}
                       value={col}
@@ -462,7 +477,7 @@ var TableDataRow = React.createClass({
         }
         else {
             return (
-              <td  onClick={selectCells.bind(null, rowIndex, colIndex, rowIndex, colIndex)} key={colIndex} className='inline-container' style={cellStyle} ><span  className={centerClassNames}>{col}</span>
+              <td  onClick={selectCells.bind(null, rowIndex, colIndex, rowIndex, colIndex)} key={colIndex} className='inline-container' style={cellStyle}  className={tdClassNames}><span  className={centerClassNames}>{col}</span>
               </td>
             );
         }
@@ -473,15 +488,14 @@ var TableDataRow = React.createClass({
     var rowIndex = this.props.rowIndex;
 
     var renderedCols = this.props.row.map(function(col, index, arr){
-        if (isColumnHidden(index, table.state.hiddenColumnRanges))
-            return '';
+        var hidden = isColumnHidden(index, this.props.hiddenColumnRanges);
 
         var dataCellRenderer = null;
         if (tableGetDataCellRenderer != null)
             dataCellRenderer = tableGetDataCellRenderer.get(index);
         if (dataCellRenderer == null)
             dataCellRenderer = defaultDataCellRenderer;
-        return dataCellRenderer.call(table, col, index, rowIndex);
+        return dataCellRenderer.call(table, col, index, rowIndex, hidden);
         }, table);
     return (
       <tr>
@@ -491,15 +505,10 @@ var TableDataRow = React.createClass({
   }
 });
 
-var Table = React.createClass({
+var TableDataBody = React.createClass({
   getInitialState: function() {
     var initState =
         {
-            isFilter: false,
-            activeHeaderIndex: -1,
-            hiddenColumnRanges: [],
-            selectingColumnStartIndex: -1,
-            selectedIndices: [-1, -1, -1, -1]
         };
     return initState;
   },
@@ -536,19 +545,47 @@ var Table = React.createClass({
   },
 
   render: function() {
-    var table = this;
+
     var dataRows = this.getData();
     var renderedRows =
         dataRows.map(function(row, rowIndex, arr) {
         return (
-            <TableDataRow key={rowIndex + 1} table={this} row={row} rowIndex={rowIndex}>
+            <TableDataRow table={this.props.table} key={rowIndex + 1} table={this} row={row} rowIndex={rowIndex}
+                selectedIndices={this.props.selectedIndices} hiddenColumnRanges={this.props.hiddenColumnRanges}>
             </TableDataRow>
             );
         }, this
         );
+
+    return (
+      <tbody>
+        {renderedRows}
+      </tbody>
+    );
+  }
+});
+
+var Table = React.createClass({
+  getInitialState: function() {
+    var initState =
+        {
+            isFilter: false,
+            hiddenColumnRanges: [],
+            selectedIndices: [-1, -1, -1, -1]
+        };
+    return initState;
+  },
+
+  getData: function() {
+      return this.refs.body.getData();
+  },
+
+  render: function() {
+    var table = this;
+
     var tableClassName = getProperty(this.props, 'className', '');
     var onMouseUp = function(event) {
-        table.setState({
+        table.refs.header.setState({
             selectingColumnStartIndex: -1
         });
     };
@@ -557,16 +594,18 @@ var Table = React.createClass({
         table.setState({
             isFilter: event.target.checked
         });
-
     };
 
     return (
     <div>
       <div className='checkbox'> <label><input type="checkbox" onChange={isFilterChanged} value={this.state.isFilter}>Filter</input></label></div>
       <table onMouseUp={onMouseUp} className={tableClassName}>
-        <TableHeader table={this}>
+        <TableHeader table={this} isFilter={table.state.isFilter} hiddenColumnRanges={table.state.hiddenColumnRanges}
+         selectedIndices={table.state.selectedIndices} index={0} ref='header'>
         </TableHeader>
-        {renderedRows}
+        <TableDataBody table={this} data={table.props.data} isFilter={table.state.isFilter} hiddenColumnRanges={table.state.hiddenColumnRanges}
+         selectedIndices={table.state.selectedIndices} index={1} ref='body'>
+        </TableDataBody>
       </table>
     </div>
     );
