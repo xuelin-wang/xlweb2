@@ -84,6 +84,7 @@ var TableHeader = React.createClass({
         {
             activeHeaderIndex: -1,
             selectingColumnStartIndex: -1,
+            filterColIndex: -1
         };
     return initState;
   },
@@ -180,7 +181,7 @@ var TableHeader = React.createClass({
                 <div className='table-header-menu'>
                 <ul>
                 <li className='top'>{downArrowStr}</li>
-                <li className='item' onClick={hideColumns} >Hide Column(s)</li>
+                <li className='item' onClick={hideColumns} >Hide Columns</li>
                 </ul>
                 </div>
             );
@@ -192,18 +193,26 @@ var TableHeader = React.createClass({
         }
 
         var leftAndDownArrow = (
-            <section className='arrow-left table-header-height'>
+            <div className='flex-inline-container'>
                 {leftAndDown1}
                 {leftAndDown2}
-              </section>
+              </div>
               );
 
 
 
         var rightArrowStr = '\u25b6';
         var downAndRight1;
-        var showFilterArrow = table.state.isFilter;
+        var showFilterArrow = tableHeader.props.isFilter;
         if (showFilterArrow) {
+
+
+
+             var filterChanged = function(colIndex, colVal) {
+             
+             };
+
+        var colValsListNode;
              var tableData = table.getData();
              var hasBlank = false;
              var colVals = [];
@@ -227,52 +236,45 @@ var TableHeader = React.createClass({
                      colVals.splice(index, 1);
                  }
              }
+             if (hasBlank)
+                 colVals.push('blank');
 
 
-        var filterArrowDown = function(colIndex) {
-            table.setState(
-                {
-                inHeaderMenu: colIndex
-                }
-            );
-
-            tableHeader.setState(
-                {openModalIndex: colIndex}
-            );
-        };
-
-             var filterChanged = function(colIndex, colVal) {
-             
-             };
-
-        var colValsList = colVals.map(
+            var colValsList = colVals.map(
                     function(colVal, index, arr) {
                         return (
-                        <li>
+                        <li className='item'>
                         <label><input type="checkbox" onChange={filterChanged.bind(table, colIndex, colVal)}>{colVal}</input></label>
                         </li>
                         );
                     }
                 );
 
-        var colValsListNode = (
-            <ul>{colValsList}</ul>
+            var filterModal = (
+            <Modal bsStyle='primary' title='Modal heading' animation={false}>
+                <div className='modal-body table-header-filter'>
+                <ul>
+                {colValsList}
+                </ul>
+                </div>
+                </Modal>
+                       );
+
+        downAndRight1 = (
+          <ModalTrigger modal={filterModal}>
+             <div className='table-header-filter-trigger'>{downArrowStr}</div>
+          </ModalTrigger>
         );
 
-        var myModal = (
-            <dialog styleName='table-filter-container'>
-            {colValsListNode}
-            </dialog>
-        );
         var showFilterList = function(event) {
-
-
-
+           tableHeader.setState(
+             {
+                 filterColIndex: colIndex
+             }
+           );
         };
 
-            downAndRight1 = (
-    <Button bsStyle='link' onClick={showFilterList} className='header-down-size' bsSize='large'>{downArrowStr}</Button>
-            );
+
         }
         else {
             downAndRight1 = (
@@ -292,10 +294,10 @@ var TableHeader = React.createClass({
         }
 
         var downAndRightArrow = (
-            <section className='arrow-right table-header-height'>
+            <div className='flex-inline-container table-header-height'>
                 {downAndRight1}
                 {downAndRight2}
-              </section>
+              </div>
               );
 
         var startSelectingCols = function(colIndex) {
@@ -331,7 +333,7 @@ var TableHeader = React.createClass({
             });
         }
 
-        var classNames = 'table-header-cell unselectable ';
+        var classNames = 'unselectable ';
 
         if (hidden)
             classNames = 'display-none';
@@ -346,12 +348,15 @@ var TableHeader = React.createClass({
         }
 
         return (
-          <td key={colIndex} onMouseDown={startSelectingCols.bind(table, colIndex)} onMouseUp = {endSelectingCols.bind(table, colIndex)} onMouseOver={onMouseOver} className={classNames}>
+          <td key={colIndex} onMouseDown={startSelectingCols.bind(table, colIndex)}
+             onMouseUp = {endSelectingCols.bind(table, colIndex)} onMouseOver={onMouseOver} className={classNames}>
+          <div className='flex-inline-container'>
           {leftAndDownArrow}
-          <section className='table-header-center table-header-height'>
+          <div className='flex-inline-container table-header-height'>
           <b>{col}</b>
-          </section>
+          </div>
           {downAndRightArrow}
+          </div>
           </td>
         );
     };
