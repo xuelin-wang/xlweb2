@@ -212,7 +212,6 @@ var TableHeader = React.createClass({
              
              };
 
-        var colValsListNode;
              var tableData = table.getData();
              var hasBlank = false;
              var colVals = [];
@@ -251,8 +250,8 @@ var TableHeader = React.createClass({
                 );
 
             var filterModal = (
-            <Modal bsStyle='primary' title='Modal heading' animation={false}>
-                <div className='modal-body table-header-filter'>
+            <Modal bsStyle='primary' animation={false}>
+                <div className='modal-body'>
                 <ul>
                 {colValsList}
                 </ul>

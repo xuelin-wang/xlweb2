@@ -1,32 +1,21 @@
 0 info it worked if it ends with ok
-1 verbose cli [ 'node', '/usr/local/bin/npm', 'start' ]
-2 info using npm@2.7.0
-3 info using node@v0.12.0
-4 verbose stack Error: Failed to parse json
-4 verbose stack Trailing comma in object at 13:3
-4 verbose stack   },
-4 verbose stack   ^
-4 verbose stack     at parseError (/usr/local/lib/node_modules/npm/node_modules/read-package-json/read-json.js:406:25)
-4 verbose stack     at parseJson (/usr/local/lib/node_modules/npm/node_modules/read-package-json/read-json.js:86:51)
-4 verbose stack     at /usr/local/lib/node_modules/npm/node_modules/read-package-json/read-json.js:60:33
-4 verbose stack     at evalmachine.<anonymous>:336:14
-4 verbose stack     at /usr/local/lib/node_modules/npm/node_modules/graceful-fs/graceful-fs.js:102:5
-4 verbose stack     at FSReqWrap.oncomplete (evalmachine.<anonymous>:99:15)
-5 verbose cwd /home/xuelin/dev/first/xlweb2/src/main/webapp/app
-6 error Linux 3.13.0-44-generic
-7 error argv "node" "/usr/local/bin/npm" "start"
-8 error node v0.12.0
-9 error npm  v2.7.0
-10 error file /home/xuelin/dev/first/xlweb2/src/main/webapp/app/package.json
-11 error code EJSONPARSE
-12 error Failed to parse json
-12 error Trailing comma in object at 13:3
-12 error   },
-12 error   ^
-13 error File: /home/xuelin/dev/first/xlweb2/src/main/webapp/app/package.json
-14 error Failed to parse package.json data.
-14 error package.json must be actual JSON, not just JavaScript.
-14 error
-14 error This is not a bug in npm.
-14 error Tell the package author to fix their package.json file. JSON.parse
+1 verbose cli [ '/usr/bin/node', '/usr/bin/npm', 'start' ]
+2 info using npm@1.4.28
+3 info using node@v0.10.37
+4 verbose node symlink /usr/bin/node
+5 error Failed to parse json
+5 error Unexpected string
+6 error File: /home/xuelin/dev/first/xlweb2/src/main/webapp/app/package.json
+7 error Failed to parse package.json data.
+7 error package.json must be actual JSON, not just JavaScript.
+7 error
+7 error This is not a bug in npm.
+7 error Tell the package author to fix their package.json file. JSON.parse
+8 error System Linux 3.13.0-46-generic
+9 error command "/usr/bin/node" "/usr/bin/npm" "start"
+10 error cwd /home/xuelin/dev/first/xlweb2/src/main/webapp/app
+11 error node -v v0.10.37
+12 error npm -v 1.4.28
+13 error file /home/xuelin/dev/first/xlweb2/src/main/webapp/app/package.json
+14 error code EJSONPARSE
 15 verbose exit [ 1, true ]

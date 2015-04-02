@@ -206,25 +206,18 @@ padding-left: 0px;
 
 .table-header-filter-trigger {  /* Box in the button */
   display: inline;
-  position;absolute;
-  top: 0px;
-  left: 35px;
   width: 80px;
   height: 35px;
   cursor: pointer;
 }
 
 .table-header-filter {  /* Box in the button */
-  width: 80px;
 }
 
 
 .table-header-filter ul {
     list-style-type: none;  /* Remove the bullets from the list */
     padding: 0;
-  position;absolute;
-  top: 0px;
-  left: 0px;
 }
 
 
