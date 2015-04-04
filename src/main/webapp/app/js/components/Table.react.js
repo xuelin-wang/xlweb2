@@ -18,6 +18,8 @@ var MenuItem = require('react-bootstrap').MenuItem;
 var Modal = require('react-bootstrap').Modal;
 var ModalTrigger = require('react-bootstrap').ModalTrigger;
 
+var LayeredComponentMixin = require("../react-components/js/layered-component-mixin").LayeredComponentMixin;
+
 var ReactPropTypes = React.PropTypes;
 
 var isColumnHidden = function(colIndex, hiddenRanges)
@@ -75,6 +77,85 @@ var addHiddenColumn = function(fromColIndex, toColIndex, hiddenRanges)
         }
     }
 }
+
+var TableFilterList = React.createClass({
+
+      getColVals: function(rowVals, colIndex) {
+          var hasBlank = false;
+          var colVals = [];
+          for (var rowIndex = 0; rowIndex < rowVals.length; rowIndex++) {
+             var rowData = rowVals[rowIndex];
+             if (rowData != null && rowData.length > colIndex) {
+                 var colVal = rowData[colIndex];
+                 if (colVal == null || colVal.trim().length == 0)
+                     hasBlank = true;
+                 else {
+                     colVals.push(colVal.toLowerCase());
+                 }
+             }
+             else {
+                 hasBlank = true;
+             }
+          }
+          colVals.sort();
+          for (var index = colVals.length - 1; index > 0; index--) {
+             if (colVals[index] == colVals[index - 1]) {
+                 colVals.splice(index, 1);
+             }
+          }
+          if (hasBlank)
+             colVals.push('Blank');
+           return colVals;
+      },
+
+  render: function() {
+        var downArrowStr = '\u25bc';
+        var colValsList;
+        if (this.props.showList) {
+            var colVals = this.getColVals(this.props.rowValues, this.props.colIndex);
+
+            colValsList = colVals.map(
+                function(colVal, index, arr) {
+                    return (
+                    <li className='item'>
+                    <label><input type="checkbox" >{colVal}</input></label>
+                    </li>
+                    );
+                }
+            );
+        }
+        else {
+            colValsList = null;
+        }
+
+
+        var tableHeader = this.props.tableHeader;
+        var thisColIndex = this.props.colIndex;
+        var toggleFilterList = function() {
+           tableHeader.setState(
+             {
+                 filterColIndex: thisColIndex
+             }
+           );
+        };
+
+
+        return (
+        <div className='table-filter-menu'>
+        <ul>
+          <li className='top' onClick={toggleFilterList} >{downArrowStr}</li>
+          <li>
+          <ul className='items'>
+        {colValsList}
+        </ul>
+        </li>
+        </ul>
+        </div>
+        );
+    }
+});
+
+
 
 var TableHeader = React.createClass({
 
@@ -212,74 +293,21 @@ var TableHeader = React.createClass({
              
              };
 
-             var tableData = table.getData();
-             var hasBlank = false;
-             var colVals = [];
-             for (var rowIndex = 0; rowIndex < tableData.length; rowIndex++) {
-                 var rowData = tableData[rowIndex];
-                 if (rowData != null && rowData.length > colIndex) {
-                     var colVal = rowData[colIndex];
-                     if (colVal == null || colVal.trim().length == 0)
-                         hasBlank = true;
-                     else {
-                         colVals.push(colVal.toLowerCase());
-                     }
-                 }
-                 else {
-                     hasBlank = true;
-                 }
-             }
-             colVals.sort();
-             for (var index = colVals.length - 1; index > 0; index--) {
-                 if (colVals[index] == colVals[index - 1]) {
-                     colVals.splice(index, 1);
-                 }
-             }
-             if (hasBlank)
-                 colVals.push('blank');
 
 
-            var colValsList = colVals.map(
-                    function(colVal, index, arr) {
-                        return (
-                        <li className='item'>
-                        <label><input type="checkbox" onChange={filterChanged.bind(table, colIndex, colVal)}>{colVal}</input></label>
-                        </li>
-                        );
-                    }
+        var showList = tableHeader.state.filterColIndex == colIndex;
+            downAndRight1 = (
+              <TableFilterList tableHeader={tableHeader} rowValues={table.getData()} showList={showList} colIndex={colIndex}  table={table}>
+              </TableFilterList>
+            );
+            }
+            else {
+                downAndRight1 = (
+                 <img src='images/transparent35.png' ></img>
                 );
 
-            var filterModal = (
-            <Modal bsStyle='primary' animation={false}>
-                <div className='modal-body'>
-                <ul>
-                {colValsList}
-                </ul>
-                </div>
-                </Modal>
-                       );
+            }
 
-        downAndRight1 = (
-          <ModalTrigger modal={filterModal}>
-             <div className='table-header-filter-trigger'>{downArrowStr}</div>
-          </ModalTrigger>
-        );
-
-        var showFilterList = function(event) {
-           tableHeader.setState(
-             {
-                 filterColIndex: colIndex
-             }
-           );
-        };
-
-
-        }
-        else {
-            downAndRight1 = (
-             <img src='images/transparent35.png' ></img>
-            );
-        }
         var downAndRight2;
         if (showRightArrow) {
             downAndRight2 = (
@@ -600,8 +628,11 @@ var Table = React.createClass({
         });
     };
 
+    var testSpanStyle = {position: 'absolute', top: '200px', left: '200px'};
+
     return (
-    <div>
+    <div className='table-outside-container'>
+    <div className='table-div-container'>
       <div className='checkbox'> <label><input type="checkbox" onChange={isFilterChanged} value={this.state.isFilter}>Filter</input></label></div>
       <table onMouseUp={onMouseUp} className={tableClassName}>
         <TableHeader table={this} isFilter={table.state.isFilter} hiddenColumnRanges={table.state.hiddenColumnRanges}
@@ -611,6 +642,11 @@ var Table = React.createClass({
          selectedIndices={table.state.selectedIndices} index={1} ref='body'>
         </TableDataBody>
       </table>
+    </div>
+    <div className='table-overlay-div'>
+      <span ref='testSpan' style={testSpanStyle} >test span</span>
+    </div>
+
     </div>
     );
   }

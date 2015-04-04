@@ -262,3 +262,59 @@ padding-left: 0px;
     justify-content:space-between;
     align-items:center;
 }
+
+
+
+.table-filter-menu {  /* Box in the button */
+  display: inline;
+  position;absolute;
+  top: 0px;
+  left: 35px;
+  max-height: 400px;
+    z-index: 3;
+    cursor: pointer;
+    overflow-y: auto;
+}
+
+.table-filter-menu .top {  /* Box in the button */
+}
+
+.table-filter-menu ul {
+    list-style-type: none;  /* Remove the bullets from the list */
+    padding: 0;
+  position;absolute;
+  top: 0px;
+  left: 0px;
+}
+.table-filter-menu ul li.item {
+}
+
+.table-filter-menu .items {
+    list-style-type: none;  /* Remove the bullets from the list */
+    padding: 0;
+  position;absolute;
+  top: 0px;
+  left: 0px;
+    z-index: 3;
+}
+
+.table-filter-menu .items li.item {
+}
+
+
+.table-outside-container {
+    position: relative;
+}
+
+.table-div-container {
+    position: absolute;
+    top: 0;
+    left: 0;
+}
+
+.table-overlay-div {
+    position: absolute;
+    top: 0;
+    left: 0;
+    z-index: 3;
+}
