@@ -265,6 +265,15 @@ padding-left: 0px;
 
 
 
+.table-filter-trigger {  /* Box in the button */
+  display: inline;
+  position;absolute;
+  top: 0px;
+  left: 35px;
+    cursor: pointer;
+}
+
+
 .table-filter-menu {  /* Box in the button */
   display: inline;
   position;absolute;
@@ -295,7 +304,6 @@ padding-left: 0px;
   position;absolute;
   top: 0px;
   left: 0px;
-    z-index: 3;
 }
 
 .table-filter-menu .items li.item {
@@ -308,13 +316,19 @@ padding-left: 0px;
 
 .table-div-container {
     position: absolute;
-    top: 0;
-    left: 0;
+    top: 0px;
+    left: 0px;
 }
 
 .table-overlay-div {
     position: absolute;
-    top: 0;
-    left: 0;
+    top: 70px;
+    left: 0px;
     z-index: 3;
+  opacity: 1.0;
+  background-color: white;
+  overflow: auto;
+  border: 1px solid #ccf;
+  width: 200px;
+  height: 300px;
 }

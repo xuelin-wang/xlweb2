@@ -80,6 +80,9 @@ var addHiddenColumn = function(fromColIndex, toColIndex, hiddenRanges)
 
 var TableFilterList = React.createClass({
 
+      componentDidMount: function () {
+//          React.findDOMNode(this).focus();
+      },
       getColVals: function(rowVals, colIndex) {
           var hasBlank = false;
           var colVals = [];
@@ -109,48 +112,50 @@ var TableFilterList = React.createClass({
       },
 
   render: function() {
-        var downArrowStr = '\u25bc';
-        var colValsList;
-        if (this.props.showList) {
-            var colVals = this.getColVals(this.props.rowValues, this.props.colIndex);
-
-            colValsList = colVals.map(
-                function(colVal, index, arr) {
+        var table = this.props.table;
+        var filterColIndex = this.props.filterColIndex;
+        if (filterColIndex < 0)
+            return null;
+        var rowValues = this.props.table.getData();
+        var colVals = this.getColVals(rowValues, filterColIndex);
+        var colFunc = function(colVal, index, arr) {
+                    var liKey = 'li_' + index;
                     return (
-                    <li className='item'>
-                    <label><input type="checkbox" >{colVal}</input></label>
-                    </li>
+                    <li key={liKey} className='item'><label> <input type="checkbox" value={colVal}></input>{colVal}</label></li>
                     );
-                }
-            );
-        }
-        else {
-            colValsList = null;
-        }
-
-
-        var tableHeader = this.props.tableHeader;
-        var thisColIndex = this.props.colIndex;
-        var toggleFilterList = function() {
-           tableHeader.setState(
-             {
-                 filterColIndex: thisColIndex
-             }
-           );
+                };
+        var overLayStyle = {
+            top: this.props.overlayY,
+            left: this.props.overlayX
         };
-
-
+        var resetOverlay = function() {
+//            table.setState({
+//                filterColIndex: -1
+//            });
+        };
+        var selectAll = function(){
+        };
+        var clear = function() {
+        };
+        var filterChanged = function() {
+        };
+        var ok = function() {
+        };
+        var cancel = function() {
+        };
         return (
-        <div className='table-filter-menu'>
-        <ul>
-          <li className='top' onClick={toggleFilterList} >{downArrowStr}</li>
-          <li>
-          <ul className='items'>
-        {colValsList}
-        </ul>
-        </li>
-        </ul>
-        </div>
+            <div style={overLayStyle} className='table-overlay-div' onBlur={resetOverlay}>
+                <div className='table-filter-menu'>
+                <a onClick={selectAll}>Select All</a> <a onClick={clear}>Clear</a> <br />
+                <input onChange={filterChanged}></input><br />
+                <ul>
+                    {colVals.map(colFunc)}
+                </ul>
+                <br/>
+                <input type='button' onClick={ok} value='OK'></input>
+                <input type='button' onClick={cancel} value='Cancel'></input>
+                </div>
+            </div>
         );
     }
 });
@@ -165,7 +170,6 @@ var TableHeader = React.createClass({
         {
             activeHeaderIndex: -1,
             selectingColumnStartIndex: -1,
-            filterColIndex: -1
         };
     return initState;
   },
@@ -294,11 +298,22 @@ var TableHeader = React.createClass({
              };
 
 
+        var showFilterList = function(event) {
+           var x = event.clientX;
+           var y = event.clientY;
+           table.setState(
+             {
+                 overlayX: x,
+                 overlayY: y,
+                 filterColIndex: colIndex
+             }
+           );
+        };
 
-        var showList = tableHeader.state.filterColIndex == colIndex;
             downAndRight1 = (
-              <TableFilterList tableHeader={tableHeader} rowValues={table.getData()} showList={showList} colIndex={colIndex}  table={table}>
-              </TableFilterList>
+        <div className='table-filter-trigger' onClick={showFilterList}>
+          {downArrowStr}
+        </div>
             );
             }
             else {
@@ -603,6 +618,7 @@ var Table = React.createClass({
         {
             isFilter: false,
             hiddenColumnRanges: [],
+            filterColIndex: -1,
             selectedIndices: [-1, -1, -1, -1]
         };
     return initState;
@@ -643,9 +659,8 @@ var Table = React.createClass({
         </TableDataBody>
       </table>
     </div>
-    <div className='table-overlay-div'>
-      <span ref='testSpan' style={testSpanStyle} >test span</span>
-    </div>
+    <TableFilterList ref='overlay' table={table} overlayX={this.state.overlayX} overlayY={this.state.overlayY} filterColIndex={this.state.filterColIndex}>
+    </TableFilterList>
 
     </div>
     );
