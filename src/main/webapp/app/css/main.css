@@ -200,6 +200,10 @@ padding-left: 0px;
     max-width: 60px;
 }
 
+.cursor-pointer {
+    cursor: pointer
+}
+
 .display-none {
     display: none;
 }
@@ -275,14 +279,15 @@ padding-left: 0px;
 
 
 .table-filter-menu {  /* Box in the button */
-  display: inline;
+  display: block;
   position;absolute;
   top: 0px;
   left: 35px;
-  max-height: 400px;
     z-index: 3;
     cursor: pointer;
-    overflow-y: auto;
+    overflow: auto;
+
+    height: 250px;
 }
 
 .table-filter-menu .top {  /* Box in the button */
@@ -325,10 +330,10 @@ padding-left: 0px;
     top: 70px;
     left: 0px;
     z-index: 3;
-  opacity: 1.0;
-  background-color: white;
-  overflow: auto;
-  border: 1px solid #ccf;
+  opacity: 100;
+  background: rgba(225, 225, 225, .8);
+  overflow: no;
+  border: 2px solid #ccf;
   width: 200px;
   height: 300px;
 }
