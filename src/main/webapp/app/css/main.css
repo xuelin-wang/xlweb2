@@ -225,21 +225,7 @@ padding-left: 0px;
 }
 
 
-.table-header-menu {  /* Box in the button */
-  display: inline;
-  position;absolute;
-  top: 0px;
-  left: 35px;
-  width: 35px;
-  height: 35px;
-    z-index: 3;
-    cursor: pointer;
-}
-
-.table-header-menu .top {  /* Box in the button */
-}
-
-.table-header-menu ul {
+.table-overlay-header-menu ul {
     list-style-type: none;  /* Remove the bullets from the list */
     padding: 0;
   position;absolute;
@@ -247,12 +233,10 @@ padding-left: 0px;
   left: 0px;
 }
 
-.table-header-menu ul li.item {
-        width: 60px;
-        display: none;  /* By default, do not display the items (which contains the links) */
+.table-overlay-header-menu ul li.item {
 }
 
-.table-header-menu ul:hover .item {  /* When the user hovers over the button (or any of the links) */
+.table-overlay-header-menu ul:hover .item {  /* When the user hovers over the button (or any of the links) */
     display: block;
     border: 1px solid black;
     background-color: #EDC;
@@ -336,4 +320,18 @@ padding-left: 0px;
   border: 2px solid #ccf;
   width: 200px;
   height: 300px;
+}
+
+.table-overlay-header-menu {
+    position: absolute;
+    top: 70px;
+    left: 0px;
+    z-index: 3;
+  opacity: 100;
+  background: rgba(225, 225, 225, .8);
+  overflow: no;
+  border: 2px solid #ccf;
+  width: 100px;
+  height: 20px;
+    cursor: pointer;
 }
