@@ -96,7 +96,7 @@ var TableFilterList = React.createClass({
         var filterColIndex = this.props.filterColIndex;
         if (filterColIndex < 0)
             return null;
-        var rowValues = this.props.table.getData();
+        var rowValues = this.props.table.getFilteredRows(filterColIndex);
         var colVals = table.getColVals(rowValues, filterColIndex);
         var colCriteria = table.getColumnFilterCriteria(filterColIndex);
         var valSelectionChanged = function(e) {
@@ -131,11 +131,9 @@ var TableFilterList = React.createClass({
         };
         var ok = function() {
             table.applyFilterCriteria();
-            table.resetOverlay();
         };
         var cancel = function() {
             table.unapplyFilterCriteria();
-            table.resetOverlay();
         };
 
 
@@ -259,14 +257,14 @@ var TableHeader = React.createClass({
             );
         };
 
-        var downArrowStr = '\u25bc';
-        var filteredDownArrowStr = '\u29e9';
+        var nonFilteredDownArrowStr = '\u25bc';
+        var filteredDownArrowStr = '\u29e8';
 
         if (showDownArrow) {
             leftAndDown2 = (
                 <div className='table-header-menu'>
                 <ul>
-                <li className='top'>{downArrowStr}</li>
+                <li className='top'>{nonFilteredDownArrowStr}</li>
                 <li className='item' onClick={hideColumns} >Hide Columns</li>
                 </ul>
                 </div>
@@ -311,6 +309,13 @@ var TableHeader = React.createClass({
            );
                        event.stopPropagation();
         };
+
+        var downArrowStr;
+        var filterCriteria = table.getFilterCriteria();
+        if (filterCriteria.length > colIndex && filterCriteria[colIndex] != null)
+            downArrowStr = filteredDownArrowStr;
+        else
+            downArrowStr = nonFilteredDownArrowStr;
 
             downAndRight1 = (
         <div className='table-filter-trigger' onClick={showFilterList}>
@@ -674,6 +679,43 @@ var Table = React.createClass({
       return filterCriteria[colIndex];
   },
 
+  colValMatches: function(colVal, filterVal) {
+      if (colVal == null)
+          return filterVal == 'Blank';
+      var trimmed = colVal.trim().toLowerCase();
+      if (trimmed.length == 0)
+          return filterVal == 'Blank';
+      return trimmed == filterVal;
+  },
+
+  getFilteredRows: function(filterColIndex) {
+      var data = this.getData();
+      var filterCriteria = this.getFilterCriteria();
+      var filteredRows = data.slice();
+      for (var colIndex = 0; colIndex < filterCriteria.length; colIndex++) {
+          if (colIndex == filterColIndex)
+              continue;
+          var colFilter = filterCriteria[colIndex];
+          if (colFilter == null)
+              continue;
+
+          for (var rowIndex = filteredRows.length - 1; rowIndex >= 0; rowIndex--) {
+              var row = filteredRows[rowIndex];
+              var colVal = null;
+              if (row.length >= colIndex)
+                  colVal = row[colIndex];
+              if (colVal != null)
+                  colVal = colVal.trim().toLowerCase();
+              if (colVal == null || colVal.length == 0)
+                  colVal = 'Blank';
+              var foundIndex = binSearchArray(colVal, colFilter);
+              if (foundIndex < 0)
+                  filteredRows.splice(rowIndex, 1);
+          }
+      }
+      return filteredRows;
+  },
+
     getColVals: function(rowVals, colIndex) {
         var hasBlank = false;
         var colVals = [];
@@ -731,6 +773,23 @@ var Table = React.createClass({
 
       var newColCriteria = colCriteria.slice();
       newColCriteria.splice(-foundIndex - 1, 0, colVal);
+
+      var filteredRows = this.getFilteredRows(colIndex);
+      var colVals = this.getColVals(filteredRows, colIndex);
+
+      var same = newColCriteria.length == colVals.length;
+      if (same) {
+          for (var index = 0; index < newColCriteria.length; index++) {
+              if (newColCriteria[index] != colVals[index]) {
+                  same = false;
+                  break;
+              }
+          }
+      }
+      if (same) {
+          newColCriteria = null;
+      }
+
       var filterCriteria = this.getFilterCriteria();
       var newFilterCriteria = filterCriteria.slice();
       newFilterCriteria[colIndex] = newColCriteria;
@@ -758,12 +817,20 @@ var Table = React.createClass({
 
   applyFilterCriteria: function() {
       var newFilterCriteria = this.state.filterCriteria;
-      this.setState({lastFilterCriteria: newFilterCriteria});
+      this.setState(
+          {
+              lastFilterCriteria: newFilterCriteria,
+            filterColIndex: -1
+          }
+          );
   },
 
   unapplyFilterCriteria: function() {
       var oldFilterCriteria = this.state.lastFilterCriteria;
-      this.setState({filterCriteria: oldFilterCriteria});
+      this.setState({
+          filterCriteria: oldFilterCriteria,
+            filterColIndex: -1
+          });
   },
 
   resetOverlay: function() {
@@ -771,6 +838,15 @@ var Table = React.createClass({
             filterColIndex: -1
         });
   },
+
+  resetFilter: function() {
+      var oldFilterCriteria = this.state.lastFilterCriteria;
+        this.setState({
+            filterCriteria: oldFilterCriteria,
+            filterColIndex: -1
+        });
+  },
+
 
 
   render: function() {
@@ -792,7 +868,7 @@ var Table = React.createClass({
     var testSpanStyle = {position: 'absolute', top: '200px', left: '200px'};
 
     return (
-    <div onClick={this.resetOverlay} className='table-outside-container'>
+    <div onClick={this.resetFilter} className='table-outside-container'>
     <div className='table-div-container'>
       <div className='checkbox'> <label><input type="checkbox" onChange={isFilterChanged} value={this.state.isFilter}>Filter</input></label></div>
       <table onMouseUp={onMouseUp} className={tableClassName}>
