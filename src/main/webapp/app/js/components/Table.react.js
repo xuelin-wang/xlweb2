@@ -100,13 +100,6 @@ var TableOverLay = React.createClass({
     if (headerMenuColIndex < 0)
         return null;
     else {
-        var overLayStyle = {
-            top: this.props.overlayY,
-            left: this.props.overlayX
-        };
-            var overlayClicked = function(e) {
-                e.stopPropagation();
-            };
 
         var hideColumns = function(){
             var newHiddenRanges = table.state.hiddenColumnRanges.slice(0);
@@ -126,7 +119,7 @@ var TableOverLay = React.createClass({
 
 
     return (
-            <div onClick={overlayClicked} style={overLayStyle} tabIndex='0' className='table-overlay-header-menu'>
+            <div onMouseDown={overlayClicked} style={overLayStyle} tabIndex='0' className='table-overlay-header-menu'>
                 <ul>
                 <li className='item' onClick={hideColumns} >Hide Columns</li>
                 </ul>
@@ -182,7 +175,7 @@ var TableOverLay = React.createClass({
 
 
         return (
-            <div onClick={overlayClicked} style={overLayStyle} tabIndex='0' className='table-overlay-div'>
+            <div onMouseDown={overlayClicked} style={overLayStyle} tabIndex='0' className='table-overlay-div'>
                 <a className='cursor-pointer' onClick={selectAll}>Select All</a> <a className='cursor-pointer'  onClick={clear}>Clear</a> <br />
                 <input onChange={filterChanged}></input><br />
                 <div className='table-filter-menu'>
