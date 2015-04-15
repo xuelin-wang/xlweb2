@@ -860,9 +860,20 @@ var Table = React.createClass({
     };
 
     var isFilterChanged = function(event) {
-        table.setState({
-            isFilter: event.target.checked
-        });
+        if (event.target.checked) {
+            table.setState({
+                isFilter: event.target.checked
+            });
+        }
+        else {
+            table.setState({
+                isFilter: event.target.checked,
+                lastFilterCriteria: null,
+                filterCriteria: null,
+                filterColIndex: -1
+
+            });
+        }
     };
 
     var testSpanStyle = {position: 'absolute', top: '200px', left: '200px'};
