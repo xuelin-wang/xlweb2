@@ -272,14 +272,18 @@ var TableHeader = React.createClass({
 
         var leftArrowStr = '\u25c0';
         var leftAndDown1;
+        var arrowSizeStyle= {
+            width: "10px",
+            height: "35px"
+        };
         if (showLeftArrow) {
             leftAndDown1 = (
-            <span onClick={showColumns.bind(table, false)}>{leftArrowStr}</span>
+            <span style={arrowSizeStyle} onClick={showColumns.bind(table, false)}>{leftArrowStr}</span>
             );
         }
         else {
             leftAndDown1 = (
-            <img src='images/transparent16_35.png' ></img>
+            <img src='images/transparent10_35.png' ></img>
             );
         }
 
@@ -293,6 +297,7 @@ var TableHeader = React.createClass({
 
         var nonFilteredDownArrowStr = '\u25bc';
         var filteredDownArrowStr = '\u29e8';
+        var emptyStr = '\u0020';
 
         var showHeaderMenu = function(event) {
            var x = event.clientX;
@@ -309,12 +314,12 @@ var TableHeader = React.createClass({
 
         if (showDownArrow) {
             leftAndDown2 = (
-                <span onClick={showHeaderMenu} className='table-filter-trigger'>{nonFilteredDownArrowStr}</span>
+                <span  style={arrowSizeStyle} onClick={showHeaderMenu} className='table-filter-trigger'>{nonFilteredDownArrowStr}</span>
             );
         }
         else {
             leftAndDown2 = (
-             <img src='images/transparent35.png' ></img>
+            <img src='images/transparent10_35.png' ></img>
             );
         }
 
@@ -360,14 +365,14 @@ var TableHeader = React.createClass({
             downArrowStr = nonFilteredDownArrowStr;
 
             downAndRight1 = (
-        <div className='table-filter-trigger' onClick={showFilterList}>
+        <div  style={arrowSizeStyle}  className='table-filter-trigger' onClick={showFilterList}>
           {downArrowStr}
         </div>
             );
             }
             else {
                 downAndRight1 = (
-                 <img src='images/transparent35.png' ></img>
+                 <img src='images/transparent10_35.png' ></img>
                 );
 
             }
@@ -375,12 +380,12 @@ var TableHeader = React.createClass({
         var downAndRight2;
         if (showRightArrow) {
             downAndRight2 = (
-            <span onClick={showColumns.bind(table, false)}>{rightArrowStr}</span>
+            <span style={arrowSizeStyle} onClick={showColumns.bind(table, false)}>{rightArrowStr}</span>
             );
         }
         else {
             downAndRight2 = (
-            <img src='images/transparent16_35.png' ></img>
+            <img src='images/transparent10_35.png' ></img>
             );
         }
 
