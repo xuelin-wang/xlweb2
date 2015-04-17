@@ -189,7 +189,11 @@ var TableOverLay = React.createClass({
 
 
   selectAll: function() {
-      this.setState({filterSelection: null});
+        var table = this.props.table;
+        var filterColIndex = this.props.filterColIndex;
+        var rowValues = this.props.table.getFilteredRows(filterColIndex);
+        var colVals = table.getColVals(rowValues, filterColIndex);
+      this.setState({filterSelection: colVals});
   },
 
   clearFilterSelection: function() {
