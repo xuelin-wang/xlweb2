@@ -200,13 +200,18 @@ var TableOverLay = React.createClass({
       this.setState({filterSelection: []});
   },
 
+  resetState: function(){
+      this.setState(
+        {filterSelection: null, lastFilterStr: ''}
+      );
+  },
 
   renderFilterList: function(overlayClicked, overLayStyle) {
         var table = this.props.table;
         var filterColIndex = this.props.filterColIndex;
         if (filterColIndex < 0)
             return null;
-        var rowValues = this.props.table.getFilteredRows(filterColIndex);
+        var rowValues = table.getFilteredRows(filterColIndex);
         var colVals = table.getColVals(rowValues, filterColIndex);
         var filterSelection = this.getFilterSelection();
         var component = this;
@@ -235,15 +240,64 @@ var TableOverLay = React.createClass({
         var clear = function() {
             component.clearFilterSelection();
         };
-        var filterChanged = function() {
+        var filterChanged = function(event) {
+            var filterStr = event.target.value.toLowerCase().trim();
+            var lastFilterStr = getProperty(component.state, "lastFilterStr", "");
+            if (filterStr == lastFilterStr)
+                return;
+
+            var table = component.props.table;
+            var rowValues = table.getFilteredRows(filterColIndex);
+            var colVals = table.getColVals(rowValues, filterColIndex);
+
+            var same = true;
+            for (var index = 0; index < colVals.length; index++) {
+                var colVal = colVals[index];
+                if (colVal == 'Blank')
+                    continue;
+                var found = colVal.indexOf(filterStr);
+                var foundLast = colVal.indexOf(lastFilterStr);
+                if (found >= 0 && foundLast < 0 || found < 0 && foundLast >= 0) {
+                    same = false;
+                    break;
+                }
+            }
+
+            if (same)
+                return;
+
+            var newSelection;
+            if (filterStr == '') {
+                newSelection = null;
+            }
+            else {
+                newSelection = [];
+                for (var index = 0; index < colVals.length; index++) {
+                    var colVal = colVals[index];
+                    if (colVal == 'Blank')
+                        continue;
+                    var found = colVal.indexOf(filterStr);
+                    if (found >= 0) {
+                        newSelection.push(colVal);
+                    }
+                }
+            }
+
+            component.setState(
+                {
+                    filterSelection: newSelection,
+                    lastFilterStr: filterStr
+                }
+            );
         };
+
         var ok = function() {
             table.applyFilterCriteria(filterColIndex, component.state.filterSelection);
-            component.setState({filterSelection: null});
+            component.resetState();
         };
         var cancel = function() {
             table.unapplyFilterCriteria();
-            component.setState({filterSelection: null});
+            component.resetState();
         };
 
 
@@ -894,9 +948,7 @@ var Table = React.createClass({
             filterColIndex: -1,
             headerMenuColIndex: -1
         });
-        this.refs.overlay.setState(
-            {filterSelection: null}
-        );
+        this.refs.overlay.resetState();
   },
 
 
