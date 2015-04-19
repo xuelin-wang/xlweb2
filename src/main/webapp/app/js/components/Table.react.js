@@ -91,36 +91,58 @@ var TableOverLay = React.createClass({
   renderHeaderMenu: function(overlayClicked, overLayStyle) {
 
     var table = this.props.table;
-    var headerMenuColIndex = table.state.headerMenuColIndex;
+    var headerMenuColIndex = getProperty(table.state, "headerMenuColIndex", -1);
     if (headerMenuColIndex < 0)
         return null;
+
+    var hideColumns = function(){
+        var newHiddenRanges = table.state.hiddenColumnRanges.slice(0);
+        var selectedIndices = table.state.selectedIndices;
+        var fromCol = selectedIndices[1]
+        var toCol = selectedIndices[3];
+        addHiddenColumn(fromCol, toCol, newHiddenRanges);
+        table.setState(
+        {
+            hiddenColumnRanges: newHiddenRanges,
+            selectingColumnStartIndex: -1,
+            selectedIndices: [-1, -1, -1, -1],
+            inHeaderMenu: -1
+        }
+        );
+        resetOverlay();
+    };
+
+    var sortColIndex = getProperty(table.state, 'sortColIndex', -1);
+    var sortDirection = getProperty(table.state, 'sortDirection', true);
+    if (sortColIndex < 0) {
+        sortDirection = true;
+    }
     else {
-
-        var hideColumns = function(){
-            var newHiddenRanges = table.state.hiddenColumnRanges.slice(0);
-            var selectedIndices = table.state.selectedIndices;
-            var fromCol = selectedIndices[1]
-            var toCol = selectedIndices[3];
-            addHiddenColumn(fromCol, toCol, newHiddenRanges);
-            table.setState(
+        if (sortColIndex == headerMenuColIndex)
+            sortDirection = !sortDirection;
+        else
+            sortDirection = true;
+    }
+    var directionStr = sortDirection ? 'Ascending' : 'Descending';
+    var sortRows = function() {
+        table.setState(
             {
-                hiddenColumnRanges: newHiddenRanges,
-                selectingColumnStartIndex: -1,
-                selectedIndices: [-1, -1, -1, -1],
-                inHeaderMenu: -1
+                sortColIndex: headerMenuColIndex,
+                sortDirection: sortDirection
             }
-            );
-        };
-
+        );
+        resetOverlay();
+    };
 
     return (
             <div onMouseDown={overlayClicked} style={overLayStyle} tabIndex='0' className='table-overlay-header-menu'>
                 <ul>
                 <li className='item' onClick={hideColumns} >Hide Columns</li>
+                <li className='item' onClick={sortRows} >Sort {directionStr}</li>
                 </ul>
                 </div>
     );
-    }
+
   },
 
 
@@ -211,9 +233,17 @@ var TableOverLay = React.createClass({
         var filterColIndex = this.props.filterColIndex;
         if (filterColIndex < 0)
             return null;
-        var rowValues = table.getFilteredRows(filterColIndex);
-        var colVals = table.getColVals(rowValues, filterColIndex);
         var filterSelection = this.getFilterSelection();
+        var lastFilterStr = getProperty(this.state, "lastFilterStr", "");
+        var colVals;
+        if (lastFilterStr == '') {
+            var rowValues = table.getFilteredRows(filterColIndex);
+            colVals = table.getColVals(rowValues, filterColIndex);
+        }
+        else {
+            colVals = filterSelection;
+        }
+
         var component = this;
         var valSelectionChanged = function(e) {
             var node = e.target;
@@ -807,8 +837,41 @@ var TableDataBody = React.createClass({
   render: function() {
 
     var dataRows = this.getData();
+    var table = this.props.table;
+    var sortColIndex = getProperty(table.state, "sortColIndex", -1);
+    var sortDirection = getProperty(table.state, "sortDirection", true);
+    var sortedDataRows;
+    if (sortColIndex < 0)
+        sortedDataRows = dataRows;
+    else {
+        var compareFactor = sortDirection ? 1 : -1;
+        var compareRow = function(row1, row2) {
+            var colVal1 = (row1 == null || row1.length < sortColIndex) ? null : row1[sortColIndex].toLowerCase();
+            var colVal2 = (row2 == null || row2.length < sortColIndex) ? null : row2[sortColIndex].toLowerCase();
+            if (colVal1 == null) {
+                if (colVal2 == null)
+                    return 0;
+                else
+                    return -compareFactor;
+            }
+            else if (colVal2 == null)
+            {
+                return compareFactor;
+            }
+            else {
+                if (colVal1 < colVal2)
+                    return -compareFactor;
+                else if (colVal1 > colVal2)
+                    return compareFactor;
+                else
+                    return 0;
+            }
+        };
+        sortedDataRows = dataRows.sort(compareRow);
+    }
+
     var renderedRows =
-        dataRows.map(function(row, rowIndex, arr) {
+        sortedDataRows.map(function(row, rowIndex, arr) {
         var visible = this.checkCriteria(row);
         return (
             <TableDataRow visible={visible} table={this.props.table} key={rowIndex + 1} table={this} row={row} rowIndex={rowIndex}
