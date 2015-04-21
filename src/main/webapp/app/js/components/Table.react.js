@@ -104,12 +104,11 @@ var TableOverLay = React.createClass({
         table.setState(
         {
             hiddenColumnRanges: newHiddenRanges,
-            selectingColumnStartIndex: -1,
             selectedIndices: [-1, -1, -1, -1],
             inHeaderMenu: -1
         }
         );
-        resetOverlay();
+        table.resetOverlay();
     };
 
     var sortColIndex = getProperty(table.state, 'sortColIndex', -1);
@@ -131,7 +130,7 @@ var TableOverLay = React.createClass({
                 sortDirection: sortDirection
             }
         );
-        resetOverlay();
+        table.resetOverlay();
     };
 
     return (
@@ -374,8 +373,7 @@ var TableHeader = React.createClass({
   getInitialState: function() {
     var initState =
         {
-            activeHeaderIndex: -1,
-            selectingColumnStartIndex: -1,
+            activeHeaderIndex: -1
         };
     return initState;
   },
@@ -430,7 +428,7 @@ var TableHeader = React.createClass({
         };
         if (showLeftArrow) {
             leftAndDown1 = (
-            <span style={arrowSizeStyle} onClick={showColumns.bind(table, false)}>{leftArrowStr}</span>
+            <span style={arrowSizeStyle} className='cursor-pointer' onClick={showColumns.bind(table, false)}>{leftArrowStr}</span>
             );
         }
         else {
@@ -452,6 +450,7 @@ var TableHeader = React.createClass({
         var emptyStr = '\u0020';
 
         var showHeaderMenu = function(event) {
+           event.stopPropagation();
            var x = event.clientX;
            var y = event.clientY;
            table.setState(
@@ -461,12 +460,11 @@ var TableHeader = React.createClass({
                 headerMenuColIndex: colIndex
              }
            );
-                       event.stopPropagation();
         };
 
         if (showDownArrow) {
             leftAndDown2 = (
-                <span  style={arrowSizeStyle} onClick={showHeaderMenu} className='table-filter-trigger'>{nonFilteredDownArrowStr}</span>
+                <span  style={arrowSizeStyle} onMouseDown={showHeaderMenu} className='table-filter-trigger'>{nonFilteredDownArrowStr}</span>
             );
         }
         else {
@@ -532,7 +530,7 @@ var TableHeader = React.createClass({
         var downAndRight2;
         if (showRightArrow) {
             downAndRight2 = (
-            <span style={arrowSizeStyle} onClick={showColumns.bind(table, false)}>{rightArrowStr}</span>
+            <span style={arrowSizeStyle}  className='cursor-pointer'  onClick={showColumns.bind(table, false)}>{rightArrowStr}</span>
             );
         }
         else {
@@ -548,69 +546,71 @@ var TableHeader = React.createClass({
               </div>
               );
 
-        var startSelectingCols = function(colIndex) {
-            table.setState({selectingColumnStartIndex: colIndex});
-        }
-
-        var endSelectingCols = function(colIndex) {
-            var selectedIndices = tableHeader.props.selectedIndices;
-            var fromCol;
-            var toCol;
-            fromCol = selectedIndices[1];
-            toCol = selectedIndices[3];
-
-            var currSelectingIndex = table.state.selectingColumnStartIndex;
-            if (currSelectingIndex < 0)
+        var startSelectingCol = function(e) {
+            if (table.state.headerMenuColIndex >= 0)
                 return;
-
-            var fromCol;
-            var toCol;
-            if (colIndex < currSelectingIndex) {
-                fromCol = colIndex;
-                toCol = currSelectingIndex;
-            }
-            else {
-                fromCol = currSelectingIndex;
-                toCol = colIndex;
-            }
-            var toCol = colIndex
-            table.setState(
-            {
-                selectedIndices: [0, fromCol, -1, toCol],
-                selectingColumnStartIndex: -1
+            var ne = e.nativeEvent;
+            if (ne.which != 1)
+                return;
+            table.setState({
+                selectedIndices: [-1, colIndex, -1, colIndex]
             });
-        }
+        };
+
+        var addSelectionIndices = function() {
+            var selectedIndices = table.state.selectedIndices;
+            var lowerCol = selectedIndices[1];
+            var upperCol = selectedIndices[3];
+            if (lowerCol < 0 || upperCol < 0) {
+                return [-1, colIndex, -1, colIndex];
+            }
+            if (colIndex < lowerCol - 1 || colIndex > upperCol + 1) {
+                return [-1, colIndex, -1, colIndex];
+            }
+            var newLowerCol = colIndex < lowerCol ? colIndex : lowerCol;
+            var newUpperCol = colIndex > upperCol ? colIndex : upperCol;
+            return [-1, newLowerCol, -1, newUpperCol];
+        };
 
         var classNames = 'unselectable ';
 
         if (hidden)
             classNames = 'display-none';
-        else if (tableHeader.props.selectingColumnStartIndex >= 0 &&
-            (table.state.selectingColumnStartIndex <= colIndex && table.state.selectingColumnEndIndex >= colIndex ||
-            table.state.selectingColumnStartIndex >= colIndex && table.state.selectingColumnEndIndex <= colIndex)
-            ) {
-            classNames += 'table-selected';
-        }
         else {
-            classNames += 'table-unselected';
+            var isSelected = checkSelected(-1, colIndex, table.state.selectedIndices);
+            if (isSelected) {
+                classNames += 'header-selected';
+            }
+            else {
+                classNames += 'header-unselected';
+            }
         }
 
-        var onMouseOver = function(event) {
-            tableHeader.setState({
-                activeHeaderIndex: colIndex,
-                selectingColumnEndIndex: colIndex
-            });
-        };
-
-        var onMouseOut = function(event) {
+        var onMouseOut = function(e) {
             tableHeader.setState({
                 activeHeaderIndex: -1
             });
         };
 
+var onMouseOver = function(e) {
+    tableHeader.setState({
+        activeHeaderIndex: colIndex
+    });
+};
+
+var onMouseEnter = function(e) {
+    var ne = e.nativeEvent;
+    if (ne.which == 1) {
+        var newSelectedIndices = addSelectionIndices();
+        table.setState({
+            selectedIndices: newSelectedIndices
+        });
+    };
+};
+
         return (
-          <td key={colIndex} onMouseDown={startSelectingCols.bind(table, colIndex)}
-             onMouseUp = {endSelectingCols.bind(table, colIndex)} onMouseOver={onMouseOver} onMouseOut={onMouseOut}  className={classNames}>
+          <td key={colIndex} onMouseDown={startSelectingCol} onMouseEnter={onMouseEnter}
+             onMouseOver={onMouseOver} onMouseOut={onMouseOut}  className={classNames}>
           <div className='flex-inline-container'>
           {leftAndDownArrow}
           <div className='flex-inline-container table-header-height'>
@@ -653,6 +653,7 @@ var checkSelected = function(rowIndex, colIndex, selectedIndices)
     var toCol = selectedIndices[3];
 
     var inSelectedRows = fromRow >= 0 && fromRow <= rowIndex && (toRow < 0 || toRow >= rowIndex);
+    inSelectedRows = true;
     var inSelectedCols = fromCol >= 0 && fromCol <= colIndex && (toCol < 0 || toCol >= colIndex);
     return inSelectedRows && inSelectedCols;
 }
@@ -676,10 +677,6 @@ var TableDataRow = React.createClass({
     var defaultDataCellRenderer = function(col, colIndex, rowIndex, hidden) {
         var isSelected = checkSelected(rowIndex, colIndex, tableDataRow.props.selectedIndices);
         var centerClassNames = 'center-main';
-        if (isSelected)
-            centerClassNames += ' table-selected';
-        else
-            centerClassNames += ' table-unselected';
 
         var getCellSpec = getProperty(table.props, 'getCellSpec', null);
         var cellSpec = (getCellSpec == null) ? {} : getCellSpec(rowIndex, colIndex);
@@ -708,7 +705,16 @@ var TableDataRow = React.createClass({
             table.setState({data: newChanges});
         };
 
-        var tdClassNames = hidden ? 'display-none' : '';
+        var tdClassNames;
+        if (hidden) {
+            tdClassNames = 'display-none';
+        }
+        else {
+            if (isSelected)
+                tdClassNames = ' body-selected';
+            else
+                tdClassNames = ' body-unselected';
+        }
 
         if (type == 'input') {
             return (
@@ -1021,9 +1027,6 @@ var Table = React.createClass({
 
     var tableClassName = getProperty(this.props, 'className', '');
     var onMouseUp = function(event) {
-        table.refs.header.setState({
-            selectingColumnStartIndex: -1
-        });
     };
 
     var isFilterChanged = function(event) {

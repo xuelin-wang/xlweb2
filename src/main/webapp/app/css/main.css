@@ -159,11 +159,19 @@ display: inline; float: right;
     border:1px solid black;
 }
 
-.table-selected {
-    background-color: #A79B9B;
+.header-selected {
+    background-color: #CCCCCC;
 }
 
-.table-unselected {
+.body-selected {
+    background-color: #F8F8F8;
+}
+
+.header-unselected {
+    background-color: #E8E8E8;
+}
+
+.body-unselected {
     background-color: white;
 }
 
@@ -233,10 +241,7 @@ padding-left: 0px;
   left: 0px;
 }
 
-.table-overlay-header-menu ul li.item {
-}
-
-.table-overlay-header-menu ul:hover .item {  /* When the user hovers over the button (or any of the links) */
+.table-overlay-header-menu ul li.item:hover {
     display: block;
     border: 1px solid black;
     background-color: #EDC;
@@ -332,6 +337,6 @@ padding-left: 0px;
   overflow: no;
   border: 2px solid #ccf;
   width: 100px;
-  height: 20px;
+  height: 60px;
     cursor: pointer;
 }
