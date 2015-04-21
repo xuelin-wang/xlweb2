@@ -564,9 +564,7 @@ var TableHeader = React.createClass({
             if (lowerCol < 0 || upperCol < 0) {
                 return [-1, colIndex, -1, colIndex];
             }
-            if (colIndex < lowerCol - 1 || colIndex > upperCol + 1) {
-                return [-1, colIndex, -1, colIndex];
-            }
+
             var newLowerCol = colIndex < lowerCol ? colIndex : lowerCol;
             var newUpperCol = colIndex > upperCol ? colIndex : upperCol;
             return [-1, newLowerCol, -1, newUpperCol];
