@@ -676,6 +676,7 @@ var TableDataRow = React.createClass({
   render: function() {
     var table = this.props.table;
 
+    var tableDataBody = this.props.tableDataBody;
     var tableDataRow = this;
     var defaultDataCellRenderer = function(col, colIndex, rowIndex, hidden, selectCell) {
         var isSelected = checkSelected(rowIndex, colIndex, tableDataRow.props.selectedIndices);
@@ -692,16 +693,7 @@ var TableDataRow = React.createClass({
         var handleChange = function(event) {
             var val = event.target.value;
             var changes = table.state.data;
-            var newChanges = {};
-            if (changes != null) {
-                for (var key in changes) {
-                    if(!changes.hasOwnProperty(key))
-                    {
-                        continue;
-                    }
-                    newChanges[key] = changes[key];
-                }
-            }
+            var newChanges = changes == null ? {} : changes.slice();
             var cellKey = toCellStringKey(rowIndex, colIndex);
             newChanges[cellKey] = val;
             console.log('Will send change for cell: ' + cellKey + ' with value: ' + val);
@@ -794,62 +786,9 @@ var TableDataBody = React.createClass({
     return initState;
   },
 
-  getCellData: function(rowIndex, colIndex) {
-    var origData = this.props.data;
-    var changes = getProperty(this.state, "data", {});
-    var key = toCellStringKey(rowIndex, colIndex);
-    var val;
-    if (key in changes)
-        val = changes[key];
-    else
-        val = origData[rowIndex][colIndex];
-    return val;
-  },
-
-  getRowData: function(rowIndex) {
-    var rowLen = this.props.data[0].length;
-    var row = [];
-    for (var index = 0; index < rowLen; index++) {
-        row.push(this.getCellData(rowIndex, index));
-    }
-    return row;
-  },
-
-  checkColCriteria: function(colData, colCriteria) {
-    if (colCriteria == null)
-        return true;
-    var compareColVal;
-    if (colData == null)
-        compareColval = '';
-    else
-        compareColVal = colData.trim().toLowerCase();
-    var foundIndex = binSearchArray(compareColVal, colCriteria);
-    return foundIndex >= 0;
-  },
-
-  checkCriteria: function(rowData) {
-      filterCriteria = this.props.filterCriteria;
-      for (var index = 0; index < filterCriteria.length; index++) {
-          var colVal = index < rowData.length ? rowData[index] : null;
-          if (!this.checkColCriteria(colVal, filterCriteria[index]))
-              return false;
-      }
-      return true;
-  },
-
-  getData: function() {
-    var rowLen = this.props.data.length;
-    var colLen = this.props.data[0].length;
-    var data = [];
-    for (var rowIndex = 0; rowIndex < rowLen; rowIndex++) {
-        data.push(this.getRowData(rowIndex));
-    }
-    return data;
-  },
-
   render: function() {
 
-    var dataRows = this.getData();
+    var dataRows = this.props.data;
     var table = this.props.table;
     var tableDataBody = this;
     var sortColIndex = getProperty(table.state, "sortColIndex", -1);
@@ -886,9 +825,9 @@ var TableDataBody = React.createClass({
 
     var renderedRows =
         sortedDataRows.map(function(row, rowIndex, arr) {
-        var visible = this.checkCriteria(row);
+        var visible = table.checkCriteria(row);
         return (
-            <TableDataRow visible={visible} table={table} key={rowIndex + 1} row={row} rowIndex={rowIndex}
+            <TableDataRow visible={visible} table={table} tableDataBody={tableDataBody} key={rowIndex + 1} row={row} rowIndex={rowIndex}
                 selectedIndices={tableDataBody.props.selectedIndices} hiddenColumnRanges={tableDataBody.props.hiddenColumnRanges}>
             </TableDataRow>
             );
@@ -917,8 +856,57 @@ var Table = React.createClass({
     return initState;
   },
 
+
+  getCellData: function(rowIndex, colIndex) {
+    var origData = this.props.data;
+    var changes = getProperty(this.state, "data", {});
+    var key = toCellStringKey(rowIndex, colIndex);
+    var val;
+    if (key in changes)
+        val = changes[key];
+    else
+        val = origData[rowIndex][colIndex];
+    return val;
+  },
+
+  getRowData: function(rowIndex) {
+    var colCount = this.props.data[0].length;
+    var row = [];
+    for (var colIndex = 0; colIndex < colCount; colIndex++) {
+        row.push(this.getCellData(rowIndex, colIndex));
+    }
+    return row;
+  },
+
+  checkColCriteria: function(colData, colCriteria) {
+    if (colCriteria == null)
+        return true;
+    var compareColVal;
+    if (colData == null)
+        compareColval = '';
+    else
+        compareColVal = colData.trim().toLowerCase();
+    var foundIndex = binSearchArray(compareColVal, colCriteria);
+    return foundIndex >= 0;
+  },
+
+  checkCriteria: function(rowData) {
+      filterCriteria = this.getFilterCriteria();
+      for (var index = 0; index < filterCriteria.length; index++) {
+          var colVal = index < rowData.length ? rowData[index] : null;
+          if (!this.checkColCriteria(colVal, filterCriteria[index]))
+              return false;
+      }
+      return true;
+  },
+
   getData: function() {
-      return this.refs.body.getData();
+    var rowCount = this.props.data.length;
+    var data = [];
+    for (var rowIndex = 0; rowIndex < rowCount; rowIndex++) {
+        data.push(this.getRowData(rowIndex));
+    }
+    return data;
   },
 
   getFilterCriteria: function() {
@@ -1072,7 +1060,7 @@ var Table = React.createClass({
         <TableHeader table={table} isFilter={table.state.isFilter} hiddenColumnRanges={table.state.hiddenColumnRanges}
          selectedIndices={table.state.selectedIndices} index={0} ref='header'>
         </TableHeader>
-        <TableDataBody table={table} data={table.props.data} isFilter={table.state.isFilter} hiddenColumnRanges={table.state.hiddenColumnRanges}
+        <TableDataBody table={table} data={table.getData()} isFilter={table.state.isFilter} hiddenColumnRanges={table.state.hiddenColumnRanges}
          filterCriteria={table.getFilterCriteria()} selectedIndices={table.state.selectedIndices} index={1} ref='body'>
         </TableDataBody>
       </table>
