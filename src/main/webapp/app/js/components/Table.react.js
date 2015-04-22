@@ -89,68 +89,25 @@ var TableOverLay = React.createClass({
 
 
   renderHeaderMenu: function(overlayClicked, overLayStyle) {
+      var sortDirection = this.props.sortDirection;
+      var directionStr = sortDirection ? 'Ascending' : 'Descending';
 
-    var table = this.props.table;
-    var headerMenuColIndex = getProperty(table.state, "headerMenuColIndex", -1);
-    if (headerMenuColIndex < 0)
-        return null;
-
-    var hideColumns = function(){
-        var newHiddenRanges = table.state.hiddenColumnRanges.slice();
-        var selectedIndices = table.state.selectedIndices;
-        var fromCol = selectedIndices[1]
-        var toCol = selectedIndices[3];
-        addHiddenColumn(fromCol, toCol, newHiddenRanges);
-        table.setState(
-        {
-            hiddenColumnRanges: newHiddenRanges,
-            selectedIndices: [-1, -1, -1, -1],
-            inHeaderMenu: -1
-        }
+        return (
+                <div onMouseDown={overlayClicked} style={overLayStyle} tabIndex='0' className='table-overlay-header-menu'>
+                    <ul>
+                    <li className='item' onClick={this.props.hideColumns} >Hide Columns</li>
+                    <li className='item' onClick={this.props.sortRows} >Sort {directionStr}</li>
+                    </ul>
+                    </div>
         );
-        table.resetOverlay();
-    };
-
-    var sortColIndex = getProperty(table.state, 'sortColIndex', -1);
-    var sortDirection = getProperty(table.state, 'sortDirection', true);
-    if (sortColIndex < 0) {
-        sortDirection = true;
-    }
-    else {
-        if (sortColIndex == headerMenuColIndex)
-            sortDirection = !sortDirection;
-        else
-            sortDirection = true;
-    }
-    var directionStr = sortDirection ? 'Ascending' : 'Descending';
-    var sortRows = function() {
-        table.setState(
-            {
-                sortColIndex: headerMenuColIndex,
-                sortDirection: sortDirection
-            }
-        );
-        table.resetOverlay();
-    };
-
-    return (
-            <div onMouseDown={overlayClicked} style={overLayStyle} tabIndex='0' className='table-overlay-header-menu'>
-                <ul>
-                <li className='item' onClick={hideColumns} >Hide Columns</li>
-                <li className='item' onClick={sortRows} >Sort {directionStr}</li>
-                </ul>
-                </div>
-    );
-
   },
 
 
   getFilterSelection: function() {
-        var table = this.props.table;
         var filterSelection = getProperty(this.state, "filterSelection", null);
         if (filterSelection == null) {
             var filterColIndex = this.props.filterColIndex;
-            filterSelection = table.getColumnFilterCriteria(filterColIndex);
+            filterSelection = this.props.filterColumnCriteria;
         }
         return filterSelection;
   },
@@ -168,10 +125,7 @@ var TableOverLay = React.createClass({
       var newColSelection = filterSelection.slice();
       newColSelection.splice(-foundIndex - 1, 0, colVal);
 
-      var table = this.props.table;
-      var colIndex = this.props.filterColIndex;
-      var filteredRows = table.getFilteredRows(colIndex);
-      var colVals = table.getColVals(filteredRows, colIndex);
+      var colVals = this.props.colVals;
 
       var same = newColSelection.length == colVals.length;
       if (same) {
@@ -191,10 +145,9 @@ var TableOverLay = React.createClass({
 
   removeFilterSelection: function(colVal) {
       var filterSelection = this.getFilterSelection();
-      var table = this.props.table;
       var filterColIndex = this.props.filterColIndex;
       if (filterSelection == null) {
-          filterSelection = table.getColVals(table.getData(), filterColIndex);
+          filterSelection = this.props.colVals;
       }
 
       var foundIndex = binSearchArray(colVal, filterSelection);
@@ -210,10 +163,8 @@ var TableOverLay = React.createClass({
 
 
   selectAll: function() {
-        var table = this.props.table;
         var filterColIndex = this.props.filterColIndex;
-        var rowValues = this.props.table.getFilteredRows(filterColIndex);
-        var colVals = table.getColVals(rowValues, filterColIndex);
+        var colVals = this.props.colVals;
       this.setState({filterSelection: colVals});
   },
 
@@ -228,16 +179,15 @@ var TableOverLay = React.createClass({
   },
 
   renderFilterList: function(overlayClicked, overLayStyle) {
-        var table = this.props.table;
         var filterColIndex = this.props.filterColIndex;
         if (filterColIndex < 0)
             return null;
+
         var filterSelection = this.getFilterSelection();
         var lastFilterStr = getProperty(this.state, "lastFilterStr", "");
         var colVals;
         if (lastFilterStr == '') {
-            var rowValues = table.getFilteredRows(filterColIndex);
-            colVals = table.getColVals(rowValues, filterColIndex);
+            colVals = this.props.colVals;
         }
         else {
             colVals = filterSelection;
@@ -275,9 +225,7 @@ var TableOverLay = React.createClass({
             if (filterStr == lastFilterStr)
                 return;
 
-            var table = component.props.table;
-            var rowValues = table.getFilteredRows(filterColIndex);
-            var colVals = table.getColVals(rowValues, filterColIndex);
+            var colVals = component.props.colVals;
 
             var same = true;
             for (var index = 0; index < colVals.length; index++) {
@@ -321,16 +269,13 @@ var TableOverLay = React.createClass({
         };
 
         var ok = function() {
-            table.applyFilterCriteria(filterColIndex, component.state.filterSelection);
+            component.props.applyFilterCriteria(component.state.filterSelection);
             component.resetState();
         };
         var cancel = function() {
-            table.unapplyFilterCriteria();
+            component.props.unapplyFilterCriteria();
             component.resetState();
         };
-
-
-
 
         return (
             <div onMouseDown={overlayClicked} style={overLayStyle} tabIndex='0' className='table-overlay-div'>
@@ -356,12 +301,14 @@ var TableOverLay = React.createClass({
             left: this.props.overlayX
         };
 
-        var table = this.props.table;
-        var filterColIndex = this.props.filterColIndex;
-        if (filterColIndex >= 0)
-            return this.renderFilterList(overlayClicked, overLayStyle);
-        else
-            return this.renderHeaderMenu(overlayClicked, overLayStyle);
+    var headerMenuColIndex = this.props.headerMenuColIndex;
+    var filterColIndex = this.props.filterColIndex;
+    if (headerMenuColIndex >= 0)
+        return this.renderHeaderMenu(overlayClicked, overLayStyle);
+    else if (filterColIndex >= 0)
+        return this.renderFilterList(overlayClicked, overLayStyle);
+    else
+        return null;
     }
 });
 
@@ -1054,6 +1001,76 @@ var Table = React.createClass({
 
     var testSpanStyle = {position: 'absolute', top: '200px', left: '200px'};
 
+    var headerMenuColIndex = getProperty(table.state, "headerMenuColIndex", -1);
+    var filterColIndex = getProperty(table.state, "filterColIndex", -1);
+    var headerMenuProps = {};
+    headerMenuProps.headerMenuColIndex = headerMenuColIndex;
+    if (headerMenuColIndex >= 0) {
+        var hideColumns = function(){
+            var newHiddenRanges = table.state.hiddenColumnRanges.slice();
+            var selectedIndices = table.state.selectedIndices;
+            var fromCol = selectedIndices[1]
+            var toCol = selectedIndices[3];
+            if (fromCol < 0 || toCol < 0) {
+                fromCol = headerMenuColIndex;
+                toCol = headerMenuColIndex;
+            }
+
+            addHiddenColumn(fromCol, toCol, newHiddenRanges);
+            table.setState(
+            {
+                hiddenColumnRanges: newHiddenRanges,
+                selectedIndices: [-1, -1, -1, -1],
+                inHeaderMenu: -1
+            }
+            );
+            table.resetOverlay();
+        };
+        headerMenuProps.hideColumns = hideColumns;
+
+        var sortColIndex = getProperty(table.state, 'sortColIndex', -1);
+        var sortDirection = getProperty(table.state, 'sortDirection', true);
+        if (sortColIndex < 0) {
+            sortDirection = true;
+        }
+        else {
+            if (sortColIndex == headerMenuColIndex)
+                sortDirection = !sortDirection;
+            else
+                sortDirection = true;
+        }
+        headerMenuProps.sortDirection = sortDirection;
+
+        var sortRows = function() {
+            table.setState(
+                {
+                    sortColIndex: headerMenuColIndex,
+                    sortDirection: sortDirection
+                }
+            );
+            table.resetOverlay();
+        };
+        headerMenuProps.sortRows = sortRows;
+
+    }
+
+    var filterProps = {};
+    filterProps.filterColIndex = filterColIndex;
+    if (filterColIndex >= 0) {
+       var filterColumnCriteria = table.getColumnFilterCriteria(filterColIndex);
+       filterProps.filterColumnCriteria = filterColumnCriteria;
+
+      var filteredRows = table.getFilteredRows(filterColIndex);
+      var colVals = table.getColVals(filteredRows, filterColIndex);
+      filterProps.colVals = colVals;
+
+      var applyFilterCriteria = table.applyFilterCriteria.bind(table, filterColIndex);
+      filterProps.applyFilterCriteria = applyFilterCriteria;
+
+      var unapplyFilterCriteria = table.unapplyFilterCriteria.bind(table);
+      filterProps.unapplyFilterCriteria = unapplyFilterCriteria;
+    }
+
     return (
     <div onMouseDown={table.resetOverlay} className='table-outside-container'>
     <div className='table-div-container'>
@@ -1067,7 +1084,11 @@ var Table = React.createClass({
         </TableDataBody>
       </table>
     </div>
-    <TableOverLay ref='overlay' table={table} overlayX={table.state.overlayX} overlayY={table.state.overlayY} filterColIndex={table.state.filterColIndex}>
+    <TableOverLay ref='overlay'
+        {...headerMenuProps}
+        {...filterProps}
+        overlayX={table.state.overlayX} overlayY={table.state.overlayY}
+    >
     </TableOverLay>
     </div>
     );
