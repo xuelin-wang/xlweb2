@@ -99,7 +99,7 @@ var ContentSection = React.createClass({
 
     return (
       <div className="content-section">
-        <Table header={tableHeader} data={tableData} getCellSpec={getCellSpec} className='super-table'>
+        <Table header={tableHeader} data={tableData} getCellSpec={getCellSpec}>
         </Table>
       </div>
     );

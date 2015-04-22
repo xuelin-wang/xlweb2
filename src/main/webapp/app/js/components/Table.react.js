@@ -96,7 +96,7 @@ var TableOverLay = React.createClass({
         return null;
 
     var hideColumns = function(){
-        var newHiddenRanges = table.state.hiddenColumnRanges.slice(0);
+        var newHiddenRanges = table.state.hiddenColumnRanges.slice();
         var selectedIndices = table.state.selectedIndices;
         var fromCol = selectedIndices[1]
         var toCol = selectedIndices[3];
@@ -575,7 +575,7 @@ var TableHeader = React.createClass({
         if (hidden)
             classNames = 'display-none';
         else {
-            var isSelected = checkSelected(-1, colIndex, table.state.selectedIndices);
+            var isSelected = checkHeaderSelected(colIndex, table.state.selectedIndices);
             if (isSelected) {
                 classNames += 'header-selected';
             }
@@ -650,10 +650,20 @@ var checkSelected = function(rowIndex, colIndex, selectedIndices)
     var toRow = selectedIndices[2];
     var toCol = selectedIndices[3];
 
-    var inSelectedRows = fromRow >= 0 && fromRow <= rowIndex && (toRow < 0 || toRow >= rowIndex);
-    inSelectedRows = true;
+    var inSelectedRows = (fromRow < 0 || fromRow >= 0 && fromRow <= rowIndex) && (toRow < 0 || toRow >= rowIndex);
     var inSelectedCols = fromCol >= 0 && fromCol <= colIndex && (toCol < 0 || toCol >= colIndex);
     return inSelectedRows && inSelectedCols;
+}
+
+var checkHeaderSelected = function(colIndex, selectedIndices)
+{
+    var fromRow = selectedIndices[0];
+    var fromCol = selectedIndices[1];
+    var toRow = selectedIndices[2];
+    var toCol = selectedIndices[3];
+
+    var inSelectedCols = fromCol >= 0 && fromCol <= colIndex && (toCol < 0 || toCol >= colIndex);
+    return inSelectedCols;
 }
 
 
@@ -666,13 +676,8 @@ var TableDataRow = React.createClass({
   render: function() {
     var table = this.props.table;
 
-        var selectCells = function(rowFrom, colFrom, rowTo, colTo)
-        {
-            table.setState({selectedIndices: [rowFrom, colFrom, rowTo, colTo]});
-        }
-
     var tableDataRow = this;
-    var defaultDataCellRenderer = function(col, colIndex, rowIndex, hidden) {
+    var defaultDataCellRenderer = function(col, colIndex, rowIndex, hidden, selectCell) {
         var isSelected = checkSelected(rowIndex, colIndex, tableDataRow.props.selectedIndices);
         var centerClassNames = 'center-main';
 
@@ -708,8 +713,12 @@ var TableDataRow = React.createClass({
             tdClassNames = 'display-none';
         }
         else {
-            if (isSelected)
-                tdClassNames = ' body-selected';
+            if (isSelected) {
+                if (tableDataRow.props.selectedIndices[0] == rowIndex)
+                    tdClassNames = ' cell-selected';
+                else
+                    tdClassNames = ' body-selected';
+            }
             else
                 tdClassNames = ' body-unselected';
         }
@@ -734,7 +743,7 @@ var TableDataRow = React.createClass({
                                     }, table
                                 );
             return (
-              <td  key={colIndex} className='inline-container' style={cellStyle}  className={tdClassNames}>
+              <td  key={colIndex} className='inline-container'  style={cellStyle}  className={tdClassNames}>
                   <select
                       className={centerClassNames}
                       value={col}
@@ -747,7 +756,7 @@ var TableDataRow = React.createClass({
         }
         else {
             return (
-              <td  onClick={selectCells.bind(null, rowIndex, colIndex, rowIndex, colIndex)} key={colIndex} className='inline-container' style={cellStyle}  className={tdClassNames}><span  className={centerClassNames}>{col}</span>
+              <td   key={colIndex} className='inline-container' style={cellStyle}  className={tdClassNames}  onClick={selectCell.bind(this, rowIndex, colIndex)}><span  className={centerClassNames}>{col}</span>
               </td>
             );
         }
@@ -758,14 +767,14 @@ var TableDataRow = React.createClass({
     var rowIndex = this.props.rowIndex;
 
     var renderedCols = this.props.row.map(function(col, index, arr){
-        var hidden = isColumnHidden(index, this.props.hiddenColumnRanges);
+        var hidden = isColumnHidden(index, tableDataRow.props.hiddenColumnRanges);
 
         var dataCellRenderer = null;
         if (tableGetDataCellRenderer != null)
             dataCellRenderer = tableGetDataCellRenderer.get(index);
         if (dataCellRenderer == null)
             dataCellRenderer = defaultDataCellRenderer;
-        return dataCellRenderer.call(table, col, index, rowIndex, hidden);
+        return dataCellRenderer.call(table, col, index, rowIndex, hidden, table.selectCell);
         }, table);
     var rowVisible = tableDataRow.props.visible;
     var rowClassName = rowVisible ? '' : 'display-none';
@@ -842,6 +851,7 @@ var TableDataBody = React.createClass({
 
     var dataRows = this.getData();
     var table = this.props.table;
+    var tableDataBody = this;
     var sortColIndex = getProperty(table.state, "sortColIndex", -1);
     var sortDirection = getProperty(table.state, "sortDirection", true);
     var sortedDataRows;
@@ -878,8 +888,8 @@ var TableDataBody = React.createClass({
         sortedDataRows.map(function(row, rowIndex, arr) {
         var visible = this.checkCriteria(row);
         return (
-            <TableDataRow visible={visible} table={this.props.table} key={rowIndex + 1} table={this} row={row} rowIndex={rowIndex}
-                selectedIndices={this.props.selectedIndices} hiddenColumnRanges={this.props.hiddenColumnRanges}>
+            <TableDataRow visible={visible} table={table} key={rowIndex + 1} row={row} rowIndex={rowIndex}
+                selectedIndices={tableDataBody.props.selectedIndices} hiddenColumnRanges={tableDataBody.props.hiddenColumnRanges}>
             </TableDataRow>
             );
         }, this
@@ -1018,12 +1028,21 @@ var Table = React.createClass({
         this.refs.overlay.resetState();
   },
 
+  selectCell: function(rowIndex, colIndex) {
+        this.setState({
+                selectedIndices: [rowIndex, colIndex, rowIndex, colIndex]
+        });
+  },
+
+
 
 
   render: function() {
     var table = this;
 
     var tableClassName = getProperty(this.props, 'className', '');
+    if (tableClassName == '')
+        tableClassName = 'default-table';
     var onMouseUp = function(event) {
     };
 
@@ -1046,19 +1065,19 @@ var Table = React.createClass({
     var testSpanStyle = {position: 'absolute', top: '200px', left: '200px'};
 
     return (
-    <div onMouseDown={this.resetOverlay} className='table-outside-container'>
+    <div onMouseDown={table.resetOverlay} className='table-outside-container'>
     <div className='table-div-container'>
       <div className='checkbox'> <label><input type="checkbox" onChange={isFilterChanged} value={this.state.isFilter}>Filter</input></label></div>
       <table onMouseUp={onMouseUp} className={tableClassName}>
-        <TableHeader table={this} isFilter={table.state.isFilter} hiddenColumnRanges={table.state.hiddenColumnRanges}
+        <TableHeader table={table} isFilter={table.state.isFilter} hiddenColumnRanges={table.state.hiddenColumnRanges}
          selectedIndices={table.state.selectedIndices} index={0} ref='header'>
         </TableHeader>
-        <TableDataBody table={this} data={table.props.data} isFilter={table.state.isFilter} hiddenColumnRanges={table.state.hiddenColumnRanges}
+        <TableDataBody table={table} data={table.props.data} isFilter={table.state.isFilter} hiddenColumnRanges={table.state.hiddenColumnRanges}
          filterCriteria={table.getFilterCriteria()} selectedIndices={table.state.selectedIndices} index={1} ref='body'>
         </TableDataBody>
       </table>
     </div>
-    <TableOverLay ref='overlay' table={table} overlayX={this.state.overlayX} overlayY={this.state.overlayY} filterColIndex={this.state.filterColIndex}>
+    <TableOverLay ref='overlay' table={table} overlayX={table.state.overlayX} overlayY={table.state.overlayY} filterColIndex={table.state.filterColIndex}>
     </TableOverLay>
     </div>
     );

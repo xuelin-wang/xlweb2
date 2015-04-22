@@ -150,21 +150,18 @@ display: inline; float: right;
  width: 70px;
 }
 
-.super-table{
-    border:1px solid black;
-    overflow: auto;
-}
-
-.super-table th td{
-    border:1px solid black;
-}
-
 .header-selected {
     background-color: #CCCCCC;
 }
 
 .body-selected {
-    background-color: #F8F8F8;
+    background-color: #F4F4F4;
+    border: 1px solid black;
+}
+
+.cell-selected {
+    background-color: white;
+    border: 2px solid blue;
 }
 
 .header-unselected {
@@ -173,6 +170,7 @@ display: inline; float: right;
 
 .body-unselected {
     background-color: white;
+    border: 1px solid black;
 }
 
 .table-header-center {
@@ -339,4 +337,13 @@ padding-left: 0px;
   width: 100px;
   height: 60px;
     cursor: pointer;
+}
+
+.default-table {
+  border: 1px solid black;
+  border-collapse: collapse;
+}
+
+.default-table th, td {
+    border: 1px solid black;
 }
