@@ -692,8 +692,10 @@ var TableDataRow = React.createClass({
         cellStyle = getProperty(cellSpec, "style", {});
         var handleChange = function(event) {
             var val = event.target.value;
-            var changes = table.state.data;
-            var newChanges = changes == null ? {} : changes.slice();
+            var changes = getProperty(table.state, "data", {});
+            var newChanges = {};
+            for (var k in changes)
+                newChanges[k] = changes[k];
             var cellKey = toCellStringKey(rowIndex, colIndex);
             newChanges[cellKey] = val;
             console.log('Will send change for cell: ' + cellKey + ' with value: ' + val);
