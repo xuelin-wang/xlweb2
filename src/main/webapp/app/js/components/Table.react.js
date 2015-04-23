@@ -327,8 +327,7 @@ var TableHeader = React.createClass({
 
 
   render: function() {
-    var table = this.props.table;
-    var header = getProperty(table.props, "header", null);
+    var header = this.props.header;
     if (header == null) {
         return (
             <tr key={0}><td></td></tr>
@@ -351,7 +350,7 @@ var TableHeader = React.createClass({
 
             var newRanges = hiddenRanges.slice(0);
             newRanges.splice(rangeIndex, 1);
-            table.setState({hiddenColumnRanges: newRanges});
+            tableHeader.props.setHiddenColumns(newRanges);
         };
 
         var showLeftArrow = false;
@@ -375,7 +374,7 @@ var TableHeader = React.createClass({
         };
         if (showLeftArrow) {
             leftAndDown1 = (
-            <span style={arrowSizeStyle} className='cursor-pointer' onClick={showColumns.bind(table, false)}>{leftArrowStr}</span>
+            <span style={arrowSizeStyle} className='cursor-pointer' onClick={showColumns.bind(tableHeader, false)}>{leftArrowStr}</span>
             );
         }
         else {
@@ -385,10 +384,6 @@ var TableHeader = React.createClass({
         }
 
 
-        var startHeaderButton = function(colIndex) {
-            table.setState({inHeaderMenu: colIndex});
-        };
-
         var showDownArrow = (colIndex == tableHeader.state.activeHeaderIndex);
         var leftAndDown2;
 
@@ -396,18 +391,12 @@ var TableHeader = React.createClass({
         var filteredDownArrowStr = '\u29e8';
         var emptyStr = '\u0020';
 
-        var showHeaderMenu = function(event) {
-           event.stopPropagation();
-           var x = event.clientX;
-           var y = event.clientY;
-           table.setState(
-             {
-                 overlayX: x,
-                 overlayY: y,
-                headerMenuColIndex: colIndex
-             }
-           );
-        };
+    var showHeaderMenu = function(event) {
+       event.stopPropagation();
+       var x = event.clientX;
+       var y = event.clientY;
+       tableHeader.props.showHeaderMenu(x, y, colIndex);
+    };
 
         if (showDownArrow) {
             leftAndDown2 = (
@@ -444,18 +433,12 @@ var TableHeader = React.createClass({
         var showFilterList = function(event) {
            var x = event.clientX;
            var y = event.clientY;
-           table.setState(
-             {
-                 overlayX: x,
-                 overlayY: y,
-                 filterColIndex: colIndex
-             }
-           );
-                       event.stopPropagation();
+           event.stopPropagation();
+           tableHeader.props.showFilterList(x, y, colIndex);
         };
 
         var downArrowStr;
-        var filterCriteria = table.getFilterCriteria();
+        var filterCriteria = tableHeader.props.filterCriteria;
         if (filterCriteria.length > colIndex && filterCriteria[colIndex] != null)
             downArrowStr = filteredDownArrowStr;
         else
@@ -477,7 +460,7 @@ var TableHeader = React.createClass({
         var downAndRight2;
         if (showRightArrow) {
             downAndRight2 = (
-            <span style={arrowSizeStyle}  className='cursor-pointer'  onClick={showColumns.bind(table, false)}>{rightArrowStr}</span>
+            <span style={arrowSizeStyle}  className='cursor-pointer'  onClick={showColumns.bind(tableHeader, false)}>{rightArrowStr}</span>
             );
         }
         else {
@@ -494,18 +477,16 @@ var TableHeader = React.createClass({
               );
 
         var startSelectingCol = function(e) {
-            if (table.state.headerMenuColIndex >= 0)
+            if (tableHeader.props.headerMenuColIndex >= 0)
                 return;
             var ne = e.nativeEvent;
             if (ne.which != 1)
                 return;
-            table.setState({
-                selectedIndices: [-1, colIndex, -1, colIndex]
-            });
+            tableHeader.props.selectIndices(-1, colIndex, -1, colIndex);
         };
 
         var addSelectionIndices = function() {
-            var selectedIndices = table.state.selectedIndices;
+            var selectedIndices = tableHeader.props.selectedIndices;
             var lowerCol = selectedIndices[1];
             var upperCol = selectedIndices[3];
             if (lowerCol < 0 || upperCol < 0) {
@@ -522,7 +503,7 @@ var TableHeader = React.createClass({
         if (hidden)
             classNames = 'display-none';
         else {
-            var isSelected = checkHeaderSelected(colIndex, table.state.selectedIndices);
+            var isSelected = checkHeaderSelected(colIndex, tableHeader.props.selectedIndices);
             if (isSelected) {
                 classNames += 'header-selected';
             }
@@ -567,7 +548,7 @@ var onMouseEnter = function(e) {
         );
     };
 
-    var tableGetHeaderCellRenderer = getProperty(table, "getHeaderCellRenderer", null);
+    var tableGetHeaderCellRenderer = tableHeader.props.headerCellRenderer;
 
     var renderedCols = header.map(
       function(col, index, arr) {
@@ -577,9 +558,9 @@ var onMouseEnter = function(e) {
             headerCellRenderer = tableGetHeaderCellRenderer.get(index);
         if (headerCellRenderer == null)
             headerCellRenderer = defaultHeaderCellRenderer;
-        return headerCellRenderer.call(table, col, index, hidden);
+        return headerCellRenderer.call(tableHeader, col, index, hidden);
       },
-      table
+      header
     );
 
     return (
@@ -1071,16 +1052,57 @@ var Table = React.createClass({
       filterProps.unapplyFilterCriteria = unapplyFilterCriteria;
     }
 
+    var setHiddenColumns = function(newHiddenRanges)
+     {
+        table.setState({hiddenColumnRanges: newHiddenRanges})
+     };
+
+
+    var showHeaderMenu = function(x, y, colIndex) {
+       table.setState(
+         {
+             overlayX: x,
+             overlayY: y,
+            headerMenuColIndex: colIndex
+         }
+       );
+    };
+
+    var header = getProperty(table.props, "header", null);
+    var headerCellRenderer = getProperty(table, "getHeaderCellRenderer", null);
+    var selectIndices = function(fromRow, fromCol, toRow, toCol) {
+            table.setState({
+                selectedIndices: [fromRow, fromCol, toRow, toCol]
+            });
+    };
+
+    var filterCriteria = table.getFilterCriteria();
+    var showFilterList = function(x, y, colIndex) {
+           table.setState(
+             {
+                 overlayX: x,
+                 overlayY: y,
+                 filterColIndex: colIndex
+             }
+           );
+    };
+
     return (
     <div onMouseDown={table.resetOverlay} className='table-outside-container'>
     <div className='table-div-container'>
       <div className='checkbox'> <label><input type="checkbox" onChange={isFilterChanged} value={this.state.isFilter}>Filter</input></label></div>
       <table onMouseUp={onMouseUp} className={tableClassName}>
-        <TableHeader table={table} isFilter={table.state.isFilter} hiddenColumnRanges={table.state.hiddenColumnRanges}
+        <TableHeader header={header} headerCellRenderer={headerCellRenderer} setHiddenColumns={setHiddenColumns}
+             selectedIndices={table.state.selectedIndices} showHeaderMenu={showHeaderMenu}
+             filterCriteria={filterCriteria}
+             selectIndices={selectIndices}
+             headerMenuColIndex={headerMenuColIndex}
+             showFilterList={showFilterList}
+            isFilter={table.state.isFilter} hiddenColumnRanges={table.state.hiddenColumnRanges}
          selectedIndices={table.state.selectedIndices} index={0} ref='header'>
         </TableHeader>
         <TableDataBody table={table} data={table.getData()} isFilter={table.state.isFilter} hiddenColumnRanges={table.state.hiddenColumnRanges}
-         filterCriteria={table.getFilterCriteria()} selectedIndices={table.state.selectedIndices} index={1} ref='body'>
+         filterCriteria={filterCriteria} selectedIndices={table.state.selectedIndices} index={1} ref='body'>
         </TableDataBody>
       </table>
     </div>
