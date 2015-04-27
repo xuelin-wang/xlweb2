@@ -1,0 +1,25 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title>xlweb2 immutable</title>
+    <script src="node_modules/immutable/dist/immutable.js"></script>
+</head>
+<body>
+<script language="javascript">
+    var rows=[
+      ['a', 'b', 'c'],
+      ['x', 'y', 'z']
+    ];
+    var immu = Immutable.fromJS(rows);
+    var rowCount = immu.size;
+    for (var index = 0; index < rowCount; index++) {
+        var row = immu.get(index);
+        var colCount = row.size;
+        for (var colIndex = 0; colIndex < colCount; colIndex++) {
+            console.log("cell " + index + ", colIndex: " + colIndex + ": " + row.get(colIndex));
+        }
+    }
+</script>
+</body>
+</html>

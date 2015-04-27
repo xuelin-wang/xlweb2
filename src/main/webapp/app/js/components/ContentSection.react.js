@@ -14,6 +14,7 @@ var MessageComposer = require('./MessageComposer.react');
 var Table = require('./Table.react');
 var MessageStore = require('../stores/MessageStore');
 var React = require('react');
+var Immutable = require('immutable');
 var ThreadStore = require('../stores/ThreadStore');
 
 function getStateFromStores() {
@@ -97,9 +98,11 @@ var ContentSection = React.createClass({
             return null;
     };
 
+    var tableDataList = Immutable.fromJS(tableData);
+
     return (
       <div className="content-section">
-        <Table header={tableHeader} data={tableData} getCellSpec={getCellSpec}>
+        <Table header={tableHeader} data={tableDataList} getCellSpec={getCellSpec}>
         </Table>
       </div>
     );

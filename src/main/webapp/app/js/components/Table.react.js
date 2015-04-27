@@ -13,7 +13,7 @@
 var React = require('react');
 var getProperty = require("../utils/CommonUtils").getProperty;
 var binSearchArray = require("../utils/CommonUtils").binSearchArray;
-var Button = require('react-bootstrap').Button;
+var Immutable = require('immutable');
 
 var ReactPropTypes = React.PropTypes;
 
@@ -92,8 +92,9 @@ var TableOverLay = React.createClass({
       var sortDirection = this.props.sortDirection;
       var headerMenuColIndex = this.props.headerMenuColIndex;
       var directionStr = sortDirection ? 'Ascending' : 'Descending';
+      var tableOverLay = this;
       var thisSortRows = function() {
-          this.props.sortRows(headerMenuColIndex, sortDirection);
+          tableOverLay.props.sortRows(headerMenuColIndex, sortDirection);
       };
 
         return (
@@ -736,8 +737,8 @@ var TableDataBody = React.createClass({
     else {
         var compareFactor = sortDirection ? 1 : -1;
         var compareRow = function(row1, row2) {
-            var colVal1 = (row1 == null || row1.length < sortColIndex) ? null : row1[sortColIndex].toLowerCase();
-            var colVal2 = (row2 == null || row2.length < sortColIndex) ? null : row2[sortColIndex].toLowerCase();
+            var colVal1 = (row1 == null || row1.size < sortColIndex) ? null : row1.get(sortColIndex).toLowerCase();
+            var colVal2 = (row2 == null || row2.size < sortColIndex) ? null : row2.get(sortColIndex).toLowerCase();
             if (colVal1 == null) {
                 if (colVal2 == null)
                     return 0;
@@ -757,6 +758,7 @@ var TableDataBody = React.createClass({
                     return 0;
             }
         };
+
         sortedDataRows = dataRows.sort(compareRow);
     }
 
@@ -809,25 +811,23 @@ var Table = React.createClass({
 //      return true;
 //  },
 
-  getCellData: function(rowIndex, colIndex) {
-    var origData = this.props.data;
-    var changes = getProperty(this.state, "data", {});
-    var key = toCellStringKey(rowIndex, colIndex);
-    var val;
-    if (key in changes)
-        val = changes[key];
-    else
-        val = origData[rowIndex][colIndex];
-    return val;
+  setCellData: function(rowIndex, colIndex, val) {
+        var newData = getProperty(this.state, "data", this.props.data, this.props.data);
+        var row = newData.get(rowIndex);
+        if (row == null) {
+            row = Immutable.List();
+            row = row.set(colIndex, val);
+        }
+        else {
+            row = row.set(colIndex, val);
+        }
+        newData = newData.set(rowIndex, row);
+        this.setState({data: newData});
   },
 
   getRowData: function(rowIndex) {
-    var colCount = this.props.data[0].length;
-    var row = [];
-    for (var colIndex = 0; colIndex < colCount; colIndex++) {
-        row.push(this.getCellData(rowIndex, colIndex));
-    }
-    return row;
+    var data = getProperty(this.state, "data", this.props.data, this.props.data);
+    return data.get(rowIndex);
   },
 
   checkColCriteria: function(colData, colCriteria) {
@@ -843,12 +843,7 @@ var Table = React.createClass({
   },
 
   getData: function() {
-    var rowCount = this.props.data.length;
-    var data = [];
-    for (var rowIndex = 0; rowIndex < rowCount; rowIndex++) {
-        data.push(this.getRowData(rowIndex));
-    }
-    return data;
+    return getProperty(this.state, "data", this.props.data, this.props.data);
   },
 
   getFilterCriteria: function() {
@@ -904,12 +899,6 @@ var Table = React.createClass({
       }
       return filteredRows;
   },
-
-  // return matrix of displayed cells data based on hidden column ranges, sort index/direction, filter criteria
-  // null means no change from orignal data
-  getDataMap: function() {
-
-  };
 
     getColVals: function(rowVals, colIndex) {
         var hasBlank = false;
@@ -1097,16 +1086,6 @@ var Table = React.createClass({
            );
     };
 
-    var setCellDataChange = function(rowIndex, colIndex, val) {
-        var changes = getProperty(table.state, "data", {});
-        var newChanges = {};
-        for (var k in changes)
-            newChanges[k] = changes[k];
-        var cellKey = toCellStringKey(rowIndex, colIndex);
-        newChanges[cellKey] = val;
-        table.setState({data: newChanges});
-    };
-
     var getCellSpec = getProperty(table.props, 'getCellSpec', null);
     var getDataCellRenderer = getProperty(table, "getDataCellRenderer", null);
 
@@ -1116,7 +1095,7 @@ var Table = React.createClass({
     var checkCriteria = function(rowData) {
           filterCriteria = table.getFilterCriteria();
           for (var index = 0; index < filterCriteria.length; index++) {
-              var colVal = index < rowData.length ? rowData[index] : null;
+              var colVal = index < rowData.size ? rowData[index] : null;
               if (!table.checkColCriteria(colVal, filterCriteria[index]))
                   return false;
           }
@@ -1153,7 +1132,7 @@ var Table = React.createClass({
             hiddenColumnRanges={table.state.hiddenColumnRanges}
              filterCriteria={filterCriteria}
              selectedIndices={table.state.selectedIndices}
-             setCellDataChange={setCellDataChange}
+             setCellDataChange={table.setCellData}
              getCellSpec={getCellSpec}
              getDataCellRenderer={getDataCellRenderer}
              sortColIndex={sortColIndex}

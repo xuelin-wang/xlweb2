@@ -1,9 +1,13 @@
 module.exports = {
-  getProperty: function(obj, propName, defaultVal) {
+  getProperty: function(obj, propName, defaultVal, nullVal) {
       if (!obj.hasOwnProperty(propName))
         return defaultVal;
-      if (obj[propName] !== undefined)
-        return obj[propName];
+      if (obj[propName] !== undefined) {
+        if (obj[propName] == null)
+            return nullVal;
+        else
+            return obj[propName];
+      }
       else
         return defaultVal;
   },

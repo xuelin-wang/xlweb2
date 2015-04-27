@@ -9,6 +9,7 @@
     "keymirror": "~0.1.0",
     "object-assign": "^1.0.0",
     "react": "^0.13.2",
+    "immutable": "^3.7.2",
     "react-bootstrap": "^0.17.0"
   },
   "devDependencies": {
