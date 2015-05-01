@@ -111,7 +111,6 @@ var TableOverLay = React.createClass({
   getFilterSelection: function() {
         var filterSelection = getProperty(this.state, "filterSelection", null);
         if (filterSelection == null) {
-            var filterColIndex = this.props.filterColIndex;
             filterSelection = this.props.filterColumnCriteria;
         }
         return filterSelection;
@@ -123,19 +122,17 @@ var TableOverLay = React.createClass({
       if (filterSelection == null)
           return;
 
-      var foundIndex = binSearchArray(colVal, filterSelection);
-      if (foundIndex >= 0)
+      if (filterSelection.contains(colVal))
           return;
 
-      var newColSelection = filterSelection.slice();
-      newColSelection.splice(-foundIndex - 1, 0, colVal);
+      newColSelection = filterSelection.add(colVal).sort();
 
       var colVals = this.props.colVals;
 
-      var same = newColSelection.length == colVals.length;
+      var same = newColSelection.size == colVals.size;
       if (same) {
-          for (var index = 0; index < newColSelection.length; index++) {
-              if (newColSelection[index] != colVals[index]) {
+          for (var index = 0; index < newColSelection.size; index++) {
+              if (newColSelection.get(index) != colVals.get(index)) {
                   same = false;
                   break;
               }
@@ -174,7 +171,7 @@ var TableOverLay = React.createClass({
   },
 
   clearFilterSelection: function() {
-      this.setState({filterSelection: []});
+      this.setState({filterSelection: Immutable.List()});
   },
 
   resetState: function(){
@@ -233,8 +230,8 @@ var TableOverLay = React.createClass({
             var colVals = component.props.colVals;
 
             var same = true;
-            for (var index = 0; index < colVals.length; index++) {
-                var colVal = colVals[index];
+            for (var index = 0; index < colVals.size; index++) {
+                var colVal = colVals.get(index);
                 if (colVal == 'Blank')
                     continue;
                 var found = colVal.indexOf(filterStr);
@@ -253,14 +250,14 @@ var TableOverLay = React.createClass({
                 newSelection = null;
             }
             else {
-                newSelection = [];
-                for (var index = 0; index < colVals.length; index++) {
-                    var colVal = colVals[index];
+                newSelection = Immutable.List();
+                for (var index = 0; index < colVals.size; index++) {
+                    var colVal = colVals.get(index);
                     if (colVal == 'Blank')
                         continue;
                     var found = colVal.indexOf(filterStr);
                     if (found >= 0) {
-                        newSelection.push(colVal);
+                        newSelection = newSelection.push(colVal);
                     }
                 }
             }
@@ -447,7 +444,7 @@ var TableHeader = React.createClass({
 
         var downArrowStr;
         var filterCriteria = tableHeader.props.filterCriteria;
-        if (filterCriteria.length > colIndex && filterCriteria[colIndex] != null)
+        if (filterCriteria.size > colIndex && filterCriteria[colIndex] != null)
             downArrowStr = filteredDownArrowStr;
         else
             downArrowStr = nonFilteredDownArrowStr;
@@ -697,23 +694,28 @@ var TableDataRow = React.createClass({
 
     var rowIndex = this.props.rowIndex;
 
-    var renderedCols = this.props.row.map(function(col, index, arr){
-        var hidden = isColumnHidden(index, tableDataRow.props.hiddenColumnRanges);
+    var renderedCols = null;
+    var row =  this.props.row;
+    if (row.size > 1) {
+        var origRowIndex = row.get(0).get("rowIndex");
+        renderedCols = row.takeLast(row.size - 1).map(function(col, index, arr){
+            var hidden = isColumnHidden(index, tableDataRow.props.hiddenColumnRanges);
 
-        var dataCellRenderer = null;
-        if (tableGetDataCellRenderer != null)
-            dataCellRenderer = tableGetDataCellRenderer.get(index);
-        if (dataCellRenderer == null)
-            dataCellRenderer = defaultDataCellRenderer;
-        return dataCellRenderer.call(null, col, index, rowIndex, hidden, tableDataRow.props.selectCell);
-        }, null);
-    var rowVisible = tableDataRow.props.visible;
-    var rowClassName = rowVisible ? '' : 'display-none';
-    return (
-      <tr className={rowClassName}>
-        {renderedCols}
-      </tr>
-    );
+            var dataCellRenderer = null;
+            if (tableGetDataCellRenderer != null)
+                dataCellRenderer = tableGetDataCellRenderer.get(index);
+            if (dataCellRenderer == null)
+                dataCellRenderer = defaultDataCellRenderer;
+            return dataCellRenderer.call(null, col, index, origRowIndex, hidden, tableDataRow.props.selectCell);
+            }, null);
+        var rowVisible = tableDataRow.props.visible;
+        var rowClassName = rowVisible ? '' : 'display-none';
+        return (
+          <tr className={rowClassName}>
+            {renderedCols}
+          </tr>
+        );
+    }
   }
 });
 
@@ -737,8 +739,8 @@ var TableDataBody = React.createClass({
     else {
         var compareFactor = sortDirection ? 1 : -1;
         var compareRow = function(row1, row2) {
-            var colVal1 = (row1 == null || row1.size < sortColIndex) ? null : row1.get(sortColIndex).toLowerCase();
-            var colVal2 = (row2 == null || row2.size < sortColIndex) ? null : row2.get(sortColIndex).toLowerCase();
+            var colVal1 = (row1 == null || row1.size < sortColIndex + 1) ? null : row1.get(sortColIndex + 1).toLowerCase();
+            var colVal2 = (row2 == null || row2.size < sortColIndex + 1) ? null : row2.get(sortColIndex + 1).toLowerCase();
             if (colVal1 == null) {
                 if (colVal2 == null)
                     return 0;
@@ -767,9 +769,10 @@ var TableDataBody = React.createClass({
     var renderedRows =
         sortedDataRows.map(function(row, rowIndex, arr) {
             var visible = checkCriteria(row);
+            var key = row.get(0).get("rowIndex");
             return (
                 <TableDataRow
-                    visible={visible} key={rowIndex + 1} row={row} rowIndex={rowIndex}
+                    visible={visible} key={key} row={row} rowIndex={rowIndex}
                     setCellDataChange={tableDataBody.props.setCellDataChange}
                     getCellSpec={tableDataBody.props.getCellSpec}
                     getDataCellRenderer={getDataCellRenderer}
@@ -814,20 +817,9 @@ var Table = React.createClass({
   setCellData: function(rowIndex, colIndex, val) {
         var newData = getProperty(this.state, "data", this.props.data, this.props.data);
         var row = newData.get(rowIndex);
-        if (row == null) {
-            row = Immutable.List();
-            row = row.set(colIndex, val);
-        }
-        else {
-            row = row.set(colIndex, val);
-        }
+        row = row.set(colIndex + 1, val);
         newData = newData.set(rowIndex, row);
         this.setState({data: newData});
-  },
-
-  getRowData: function(rowIndex) {
-    var data = getProperty(this.state, "data", this.props.data, this.props.data);
-    return data.get(rowIndex);
   },
 
   checkColCriteria: function(colData, colCriteria) {
@@ -850,82 +842,66 @@ var Table = React.createClass({
       var filterCriteria = this.state.filterCriteria;
       if (filterCriteria == null) {
         var header = getProperty(this.props, "header", null);
-        filterCriteria = [];
+        filterCriteria = Immutable.List();
         for (var index = 0; index < header.length; index++) {
-            filterCriteria.push(null);
+            filterCriteria = filterCriteria.push(null);
         }
       }
       return filterCriteria;
   },
 
-  getColumnFilterCriteria: function(colIndex) {
-      var filterCriteria = this.getFilterCriteria();
-      return filterCriteria[colIndex];
-  },
-
-  colValMatches: function(colVal, filterVal) {
-      if (colVal == null)
-          return filterVal == 'Blank';
-      var trimmed = colVal.trim().toLowerCase();
-      if (trimmed.length == 0)
-          return filterVal == 'Blank';
-      return trimmed == filterVal;
-  },
 
   getFilteredRows: function(filterColIndex) {
       var data = this.getData();
       var filterCriteria = this.getFilterCriteria();
-      var filteredRows = data.slice();
-      for (var colIndex = 0; colIndex < filterCriteria.length; colIndex++) {
-          if (colIndex == filterColIndex)
-              continue;
-          var colFilter = filterCriteria[colIndex];
-          if (colFilter == null)
-              continue;
-
-          for (var rowIndex = filteredRows.length - 1; rowIndex >= 0; rowIndex--) {
-              var row = filteredRows[rowIndex];
+      var filteredRows = Immutable.List();
+      for (var rowIndex = 0; rowIndex < data.size; rowIndex++) {
+          var good = true;
+          var row = data.get(rowIndex);
+          for (var colIndex = 0; colIndex < filterCriteria.size; colIndex++) {
+              if (colIndex == filterColIndex)
+                  continue;
+              var colFilter = filterCriteria.get(colIndex);
+              if (colFilter == null)
+                  continue;
               var colVal = null;
-              if (row.length >= colIndex)
-                  colVal = row[colIndex];
+              if (row.size > colIndex + 1)
+                  colVal = row.get(colIndex + 1);
               if (colVal != null)
                   colVal = colVal.trim().toLowerCase();
               if (colVal == null || colVal.length == 0)
                   colVal = 'Blank';
-              var foundIndex = binSearchArray(colVal, colFilter);
-              if (foundIndex < 0)
-                  filteredRows.splice(rowIndex, 1);
+              if (!colFilter.contains(colVal)) {
+                  good = false;
+                  break;
+              }
           }
+
+          if (good)
+              filteredRows = filteredRows.push(row);
       }
       return filteredRows;
   },
 
     getColVals: function(rowVals, colIndex) {
-        var hasBlank = false;
-        var colVals = [];
-        for (var rowIndex = 0; rowIndex < rowVals.length; rowIndex++) {
-           var rowData = rowVals[rowIndex];
-           if (rowData != null && rowData.length > colIndex) {
-               var colVal = rowData[colIndex];
+        var colVals = Immutable.Set();
+        for (var rowIndex = 0; rowIndex < rowVals.size; rowIndex++) {
+           var rowData = rowVals.get(rowIndex);
+           if (rowData.size > colIndex + 1) {
+               var colVal = rowData.get(colIndex + 1);
                if (colVal == null || colVal.trim().length == 0)
-                   hasBlank = true;
+                   colVals = colVals.add('Blank');
                else {
-                   colVals.push(colVal.trim().toLowerCase());
+                   colVals = colVals.add(colVal.trim().toLowerCase());
                }
            }
            else {
-               hasBlank = true;
+               colVals = colVals.add('Blank');
            }
         }
-        colVals.sort();
-        for (var index = colVals.length - 1; index > 0; index--) {
-           if (colVals[index] == colVals[index - 1]) {
-               colVals.splice(index, 1);
-           }
-        }
-        if (hasBlank)
-           colVals.push('Blank');
-         return colVals;
+        var colValsList = colVals.toList();
+        colValsList = colValsList.sort();
+        return colValsList;
     },
 
   resetOverlay: function() {
@@ -1022,7 +998,7 @@ var Table = React.createClass({
     var filterProps = {};
     filterProps.filterColIndex = filterColIndex;
     if (filterColIndex >= 0) {
-       var filterColumnCriteria = table.getColumnFilterCriteria(filterColIndex);
+       var filterColumnCriteria = table.getFilterCriteria().get(filterColIndex);
        filterProps.filterColumnCriteria = filterColumnCriteria;
 
       var filteredRows = table.getFilteredRows(filterColIndex);
@@ -1030,8 +1006,7 @@ var Table = React.createClass({
       filterProps.colVals = colVals;
 
       var applyFilterCriteria = function(filterSelection) {
-          var newFilterCriteria = table.getFilterCriteria().slice();
-          newFilterCriteria[filterColIndex] = filterSelection;
+          var newFilterCriteria = table.getFilterCriteria().set(filterColIndex, filterSelection);
           table.setState(
               {
                   filterCriteria: newFilterCriteria,
@@ -1094,8 +1069,8 @@ var Table = React.createClass({
 
     var checkCriteria = function(rowData) {
           filterCriteria = table.getFilterCriteria();
-          for (var index = 0; index < filterCriteria.length; index++) {
-              var colVal = index < rowData.size ? rowData[index] : null;
+          for (var index = 0; index < filterCriteria.size; index++) {
+              var colVal = index + 1 < rowData.size ? rowData.get(index + 1) : null;
               if (!table.checkColCriteria(colVal, filterCriteria[index]))
                   return false;
           }

@@ -98,6 +98,13 @@ var ContentSection = React.createClass({
             return null;
     };
 
+    var rowCount = tableData.length;
+    for (var rowIndex = 0; rowIndex < rowCount; rowIndex++) {
+        var row = tableData[rowIndex];
+        var rowMetadata = {};
+        rowMetadata.rowIndex = rowIndex;
+        row.splice(0, 0, rowMetadata);
+    }
     var tableDataList = Immutable.fromJS(tableData);
 
     return (
