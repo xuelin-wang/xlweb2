@@ -125,7 +125,7 @@ var TableOverLay = React.createClass({
       if (filterSelection.contains(colVal))
           return;
 
-      newColSelection = filterSelection.add(colVal).sort();
+      newColSelection = filterSelection.push(colVal).sort();
 
       var colVals = this.props.colVals;
 
@@ -152,12 +152,12 @@ var TableOverLay = React.createClass({
           filterSelection = this.props.colVals;
       }
 
-      var foundIndex = binSearchArray(colVal, filterSelection);
-      if (foundIndex < 0)
+      var pred = function(x){return x === colVal;};
+      var kv = filterSelection.findEntry(pred);
+      if (kv == null)
           return;
 
-      var newFilterSelection = filterSelection.slice();
-      newFilterSelection.splice(foundIndex, 1);
+      var newFilterSelection = filterSelection.delete(kv[0]);
 
       this.setState({filterSelection: newFilterSelection});
   },
@@ -192,7 +192,8 @@ var TableOverLay = React.createClass({
             colVals = this.props.colVals;
         }
         else {
-            colVals = filterSelection;
+            var pred = function(x) {return x.indexOf(lastFilterStr) >= 0;};
+            colVals = this.props.colVals.filter(pred);
         }
 
         var component = this;
@@ -206,8 +207,7 @@ var TableOverLay = React.createClass({
         var colFunc = function(colVal, index, arr) {
                     var checked = true;
                     if (filterSelection != null) {
-                        var foundIndex = binSearchArray(colVal, filterSelection);
-                        checked = foundIndex >= 0;
+                        checked = filterSelection.contains(colVal);
                     }
                     var liKey = 'li_' + index;
                     return (
@@ -444,7 +444,7 @@ var TableHeader = React.createClass({
 
         var downArrowStr;
         var filterCriteria = tableHeader.props.filterCriteria;
-        if (filterCriteria.size > colIndex && filterCriteria[colIndex] != null)
+        if (filterCriteria.size > colIndex && filterCriteria.get(colIndex) != null)
             downArrowStr = filteredDownArrowStr;
         else
             downArrowStr = nonFilteredDownArrowStr;
