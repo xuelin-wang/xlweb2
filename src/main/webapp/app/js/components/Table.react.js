@@ -127,21 +127,6 @@ var TableOverLay = React.createClass({
 
       newColSelection = filterSelection.push(colVal).sort();
 
-      var colVals = this.props.colVals;
-
-      var same = newColSelection.size == colVals.size;
-      if (same) {
-          for (var index = 0; index < newColSelection.size; index++) {
-              if (newColSelection.get(index) != colVals.get(index)) {
-                  same = false;
-                  break;
-              }
-          }
-      }
-      if (same) {
-          newColSelection = null;
-      }
-
       this.setState({filterSelection: newColSelection});
   },
 
@@ -827,11 +812,10 @@ var Table = React.createClass({
         return true;
     var compareColVal;
     if (colData == null)
-        compareColval = '';
+        compareColval = 'Blank';
     else
         compareColVal = colData.trim().toLowerCase();
-    var foundIndex = binSearchArray(compareColVal, colCriteria);
-    return foundIndex >= 0;
+    return colCriteria.contains(compareColVal);
   },
 
   getData: function() {
@@ -1071,7 +1055,7 @@ var Table = React.createClass({
           filterCriteria = table.getFilterCriteria();
           for (var index = 0; index < filterCriteria.size; index++) {
               var colVal = index + 1 < rowData.size ? rowData.get(index + 1) : null;
-              if (!table.checkColCriteria(colVal, filterCriteria[index]))
+              if (!table.checkColCriteria(colVal, filterCriteria.get(index)))
                   return false;
           }
           return true;
