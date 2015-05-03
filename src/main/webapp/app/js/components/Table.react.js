@@ -14,6 +14,7 @@ var React = require('react');
 var getProperty = require("../utils/CommonUtils").getProperty;
 var binSearchArray = require("../utils/CommonUtils").binSearchArray;
 var Immutable = require('immutable');
+var PureRenderMixin = require('react/addons').addons.PureRenderMixin;
 
 var ReactPropTypes = React.PropTypes;
 
@@ -83,6 +84,15 @@ var TableOverLay = React.createClass({
     return initState;
   },
 
+shouldComponentUpdate: function(nextProps, nextState) {
+    var headerMenuColIndex = this.props.headerMenuColIndex;
+    var filterColIndex = this.props.filterColIndex;
+    var nextHeaderMenuColIndex = nextProps.headerMenuColIndex;
+    var nextFilterColIndex = nextProps.filterColIndex;
+    if (headerMenuColIndex < 0 && filterColIndex < 0 && nextHeaderMenuColIndex < 0 && nextFilterColIndex < 0)
+        return false;
+    return true;
+},
       componentDidMount: function () {
 //          React.findDOMNode(this).focus();
       },
@@ -303,6 +313,7 @@ var TableOverLay = React.createClass({
 
 var TableHeader = React.createClass({
 
+    mixins: [PureRenderMixin],
 
   getInitialState: function() {
     var initState =
@@ -592,6 +603,7 @@ var toCellStringKey = function(rowIndex, colIndex) {
 
 
 var TableDataRow = React.createClass({
+    mixins: [PureRenderMixin],
   render: function() {
     var tableDataRow = this;
     var defaultDataCellRenderer = function(col, colIndex, rowIndex, hidden, selectCell) {
@@ -705,7 +717,9 @@ var TableDataRow = React.createClass({
 });
 
 var TableDataBody = React.createClass({
-  getInitialState: function() {
+    mixins: [PureRenderMixin],
+
+    getInitialState: function() {
     var initState =
         {
         };
@@ -777,7 +791,7 @@ var TableDataBody = React.createClass({
 });
 
 var Table = React.createClass({
-
+  mixins: [PureRenderMixin],
 //  shouldComponentUpdate: function(nextProps, nextState) {
 //      return true;
 //  },
