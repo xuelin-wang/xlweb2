@@ -366,12 +366,12 @@ var TableHeader = React.createClass({
 
         var leftArrowStr = '\u25c0';
         var leftAndDown1;
-        var arrowSizeStyle= {
-            width: "10px",
-            height: "35px"
-        };
         var leftShowColumns = function() {
             showColumns(true);
+        };
+        var arrowSizeStyle= {
+            width: "10px",
+            height: "35px",
         };
         if (showLeftArrow) {
             leftAndDown1 = (
@@ -410,8 +410,14 @@ var TableHeader = React.createClass({
             );
         }
 
+        var leftDownStyle = {
+            position: "absolute",
+            top: "0px",
+            left: "1px"
+        };
+
         var leftAndDownArrow = (
-            <div className='flex-inline-container'>
+            <div style={leftDownStyle}>
                 {leftAndDown1}
                 {leftAndDown2}
               </div>
@@ -473,8 +479,14 @@ var TableHeader = React.createClass({
             );
         }
 
+        var rightDownStyle = {
+            position: "absolute",
+            top: "0px",
+            right: "1px"
+        };
+
         var downAndRightArrow = (
-            <div className='flex-inline-container table-header-height'>
+            <div style={rightDownStyle}>
                 {downAndRight1}
                 {downAndRight2}
               </div>
@@ -536,12 +548,26 @@ var onMouseEnter = function(e) {
     };
 };
 
+    var tableHeaderCellStyle = {
+        position: "relative",
+        left:"0px",
+        top:"0px"
+    };
+    var tableHeaderCellCenterStyle = {
+         margin: "0 auto",
+         "padding-left": "25px",
+         "padding-right": "25px",
+         "text-align": "center",
+         width: "90%"
+    };
+
+
         return (
           <td key={colIndex} onMouseDown={startSelectingCol} onMouseEnter={onMouseEnter}
              onMouseOver={onMouseOver} onMouseOut={onMouseOut}  className={classNames}>
-          <div className='flex-inline-container'>
+          <div style={tableHeaderCellStyle}>
           {leftAndDownArrow}
-          <div className='flex-inline-container table-header-height'>
+          <div style={tableHeaderCellCenterStyle}>
           <b>{col}</b>
           </div>
           {downAndRightArrow}
