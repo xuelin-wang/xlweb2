@@ -15,65 +15,11 @@ var getProperty = require("../utils/CommonUtils").getProperty;
 var binSearchArray = require("../utils/CommonUtils").binSearchArray;
 var Immutable = require('immutable');
 var PureRenderMixin = require('react/addons').addons.PureRenderMixin;
+var Perf = React.addons.Perf;
 
 var ReactPropTypes = React.PropTypes;
 
-var isColumnHidden = function(colIndex, hiddenRanges)
-{
-    for (var index = 0; index < hiddenRanges.length; index++) {
-        var range = hiddenRanges[index];
-        if (colIndex >= range[0] && colIndex <= range[1]) {
-            return true;
-        }
-    }
-    return false;
-}
-
-var addHiddenColumn = function(fromColIndex, toColIndex, hiddenRanges)
-{
-    var added = false;
-    for (var index = hiddenRanges.length - 1; index >= 0; index--) {
-        var range = hiddenRanges[index];
-        if (fromColIndex <= range[1] && toColIndex >= range[0]) {
-            var left = (fromColIndex < range[0]) ? fromColIndex : range[0];
-            var right = (toColIndex > range[1]) ? toColIndex : range[1];
-            var newRange = [left, right];
-            hiddenRanges.splice(index, 1, newRange);
-            added = true;
-            break;
-        }
-    }
-
-    if (!added) {
-        // make sure ranges are ordered ascending
-
-        for (var index = 0; index <= hiddenRanges.length - 1; index++) {
-            var range = hiddenRanges[index];
-            if (range[0] > fromColIndex) {
-              hiddenRanges.splice(index, 0, [fromColIndex, toColIndex]);
-              added = true;
-              break;
-            }
-        }
-
-        if (!added) {
-          hiddenRanges.push([fromColIndex, toColIndex]);
-        }
-    }
-
-    //merge Ranges if can
-    for (var index = hiddenRanges.length - 2; index >= 0; index--) {
-        var range = hiddenRanges[index];
-        var nextRange = hiddenRanges[index + 1];
-        if (range[1] >= nextRange[0] && range[0] <= nextRange[1] || range[1] == nextRange[0] - 1 || range[0] == nextRange[1] - 1) {
-            var left = (range[0] < nextRange[0]) ? range[0] : nextRange[0];
-            var right = (range[1] > nextRange[1]) ? range[1] : nextRange[1];
-            var newRange = [left, right];
-            hiddenRanges.splice(index, 2, newRange);
-        }
-    }
-}
-
+Perf.start();
 
 
 var TableOverLay = React.createClass({
@@ -336,33 +282,43 @@ var TableHeader = React.createClass({
 
     var defaultHeaderCellRenderer = function(col, colIndex, hidden) {
         var showColumns = function(leftOrRight){
-            var hiddenRanges = tableHeader.props.hiddenColumnRanges;
-            var rangeIndex = -1;
-            for (var index = 0; index < hiddenRanges.length; index++) {
-                var thisRange = hiddenRanges[index];
-                if (!leftOrRight && thisRange[1] == colIndex - 1 || leftOrRight && thisRange[0] == colIndex + 1) {
-                    rangeIndex = index;
-                    break;
+            var columnsVisibility = tableHeader.props.columnsVisibility;
+
+            var fromIndex = -1;
+            var toIndex = -1;
+            if (leftOrRight) {
+                if (!columnsVisibility.get(colIndex - 1)) {
+                    toIndex = colIndex - 1;
+                }
+                for (var index = colIndex - 1; index >= 0; index--) {
+                    if (!columnsVisibility.get(index))
+                        fromIndex = index;
+                    else
+                        break;
+                }
+            }
+            else {
+                if (!columnsVisibility.get(colIndex + 1)) {
+                    fromIndex = colIndex + 1;
+                }
+                for (var index = colIndex + 1; index < columnsVisibility.size; index++) {
+                    if (!columnsVisibility.get(index))
+                        toIndex = index;
+                    else
+                        break;
                 }
             }
 
-            var newRanges = hiddenRanges.slice(0);
-            newRanges.splice(rangeIndex, 1);
-            tableHeader.props.setHiddenColumns(newRanges);
+            tableHeader.props.showHideColumns(fromIndex, toIndex, true);
         };
 
         var showLeftArrow = false;
         var showRightArrow = false;
-        var hiddenRanges = tableHeader.props.hiddenColumnRanges;
-        for (var index = 0; index < hiddenRanges.length; index++) {
-            var range = hiddenRanges[index];
-            if (colIndex == range[0] - 1) {
-                showRightArrow = true;
-            }
-            if (colIndex == range[1] + 1) {
-                showLeftArrow = true;
-            }
-        }
+        var columnsVisibility = tableHeader.props.columnsVisibility;
+        if (colIndex > 0 && columnsVisibility.get(colIndex) && !columnsVisibility.get(colIndex - 1))
+            showLeftArrow = true;
+        if (colIndex < columnsVisibility.size - 1 && columnsVisibility.get(colIndex) && !columnsVisibility.get(colIndex + 1))
+            showRightArrow = true;
 
         var leftArrowStr = '\u25c0';
         var leftAndDown1;
@@ -498,7 +454,7 @@ var TableHeader = React.createClass({
             var ne = e.nativeEvent;
             if (ne.which != 1)
                 return;
-            tableHeader.props.selectIndices([-1, colIndex, -1, colIndex]);
+            tableHeader.props.selectCells([-1, colIndex, -1, colIndex]);
         };
 
         var addSelectionIndices = function() {
@@ -544,7 +500,7 @@ var onMouseEnter = function(e) {
     var ne = e.nativeEvent;
     if (ne.which == 1) {
         var newSelectedIndices = addSelectionIndices();
-        tableHeader.props.selectIndices(newSelectedIndices);
+        tableHeader.props.selectCells(newSelectedIndices);
     };
 };
 
@@ -555,9 +511,9 @@ var onMouseEnter = function(e) {
     };
     var tableHeaderCellCenterStyle = {
          margin: "0 auto",
-         "padding-left": "25px",
-         "padding-right": "25px",
-         "text-align": "center",
+         "paddingLeft": "25px",
+         "paddingRight": "25px",
+         "textAlign": "center",
          width: "90%"
     };
 
@@ -580,7 +536,7 @@ var onMouseEnter = function(e) {
 
     var renderedCols = header.map(
       function(col, index, arr) {
-        var hidden = isColumnHidden(index, tableHeader.props.hiddenColumnRanges);
+        var hidden = !tableHeader.props.columnsVisibility.get(index);
         var headerCellRenderer = null;
         if (tableGetHeaderCellRenderer != null)
             headerCellRenderer = tableGetHeaderCellRenderer.get(index);
@@ -592,9 +548,11 @@ var onMouseEnter = function(e) {
     );
 
     return (
+      <thead>
       <tr key={0}>
         {renderedCols}
       </tr>
+      </thead>
     );
   }
 });
@@ -632,7 +590,7 @@ var TableDataRow = React.createClass({
     mixins: [PureRenderMixin],
   render: function() {
     var tableDataRow = this;
-    var defaultDataCellRenderer = function(col, colIndex, rowIndex, hidden, selectCell) {
+    var defaultDataCellRenderer = function(col, colIndex, rowIndex, hidden, selectCells) {
         var isSelected = checkSelected(rowIndex, colIndex, tableDataRow.props.selectedIndices);
         var centerClassNames = 'center-main';
 
@@ -666,7 +624,7 @@ var TableDataRow = React.createClass({
         }
 
         var thisSelectCell = function() {
-            selectCell(rowIndex, colIndex);
+            selectCells([rowIndex, colIndex, rowIndex, colIndex]);
         };
 
         if (type == 'input') {
@@ -722,14 +680,14 @@ var TableDataRow = React.createClass({
     if (row.size > 1) {
         var origRowIndex = row.get(0).get("rowIndex");
         renderedCols = row.takeLast(row.size - 1).map(function(col, index, arr){
-            var hidden = isColumnHidden(index, tableDataRow.props.hiddenColumnRanges);
+            var hidden = !tableDataRow.props.columnsVisibility.get(index);
 
             var dataCellRenderer = null;
             if (tableGetDataCellRenderer != null)
                 dataCellRenderer = tableGetDataCellRenderer.get(index);
             if (dataCellRenderer == null)
                 dataCellRenderer = defaultDataCellRenderer;
-            return dataCellRenderer.call(null, col, index, origRowIndex, hidden, tableDataRow.props.selectCell);
+            return dataCellRenderer.call(null, col, index, origRowIndex, hidden, tableDataRow.props.selectCells);
             }, null);
         var rowVisible = tableDataRow.props.visible;
         var rowClassName = rowVisible ? '' : 'display-none';
@@ -794,15 +752,16 @@ var TableDataBody = React.createClass({
     var renderedRows =
         sortedDataRows.map(function(row, rowIndex, arr) {
             var visible = checkCriteria(row);
-            var key = row.get(0).get("rowIndex");
+            var key = row.get(0).get("rowIndex") + 1;
             return (
                 <TableDataRow
                     visible={visible} key={key} row={row} rowIndex={rowIndex}
                     setCellDataChange={tableDataBody.props.setCellDataChange}
                     getCellSpec={tableDataBody.props.getCellSpec}
                     getDataCellRenderer={getDataCellRenderer}
-                    selectCell={tableDataBody.props.selectCell}
-                    selectedIndices={tableDataBody.props.selectedIndices} hiddenColumnRanges={tableDataBody.props.hiddenColumnRanges}>
+                    selectCells={tableDataBody.props.selectCells}
+                    selectedIndices={tableDataBody.props.selectedIndices}
+                    columnsVisibility={tableDataBody.props.columnsVisibility}>
                 </TableDataRow>
                 );
             }, null
@@ -826,7 +785,7 @@ var Table = React.createClass({
     var initState =
         {
             isFilter: false,
-            hiddenColumnRanges: [],
+            columnsVisibility: null,
             headerMenuColIndex: -1,
             filterColIndex: -1,
             filterCriteria: null,
@@ -945,20 +904,30 @@ var Table = React.createClass({
     var tableClassName = getProperty(this.props, 'className', '');
     if (tableClassName == '')
         tableClassName = 'default-table';
+    var tbodyClassName = getProperty(this.props, 'tbodyClassName', '');
+    if (tbodyClassName == '')
+        tbodyClassName = 'default-tbody';
     var onMouseUp = function(event) {
     };
 
     var isFilterChanged = function(event) {
         if (event.target.checked) {
+Perf.printWasted();
             table.setState({
-                isFilter: event.target.checked
+                isFilter: event.target.checked,
+                lastAction: {
+                    name: 'showHideFilter'
+                }
             });
         }
         else {
             table.setState({
                 isFilter: event.target.checked,
                 filterCriteria: null,
-                filterColIndex: -1
+                filterColIndex: -1,
+                lastAction: {
+                    name: 'showHideFilter'
+                }
 
             });
         }
@@ -969,10 +938,41 @@ var Table = React.createClass({
     var headerMenuColIndex = getProperty(table.state, "headerMenuColIndex", -1);
     var filterColIndex = getProperty(table.state, "filterColIndex", -1);
     var headerMenuProps = {};
+    var header = getProperty(table.props, "header", null);
+    var columnsCount = header.length;
     headerMenuProps.headerMenuColIndex = headerMenuColIndex;
+
+    var getColumnsVisibility = function() {
+        var columnsVisibility = getProperty(table.state, 'columnsVisibility', null);
+        if (columnsVisibility == null) {
+            columnsVisibility = Immutable.List();
+            for (var index = 0; index < columnsCount; index++) {
+                columnsVisibility = columnsVisibility.push(true);
+            }
+        }
+        return columnsVisibility;
+    };
+
+    var showHideColumns = function(fromColIndex, toColIndex, showOrHide)
+     {
+        var columnsVisibility = getColumnsVisibility();
+        for (var index = fromColIndex; index <= toColIndex; index++) {
+            columnsVisibility = columnsVisibility.set(index, showOrHide);
+        }
+
+        table.setState(
+            {
+                columnsVisibility: columnsVisibility,
+                lastAction: {
+                    name: 'showOrHideColumns',
+                    cells: [-1, fromColIndex, -1, toColIndex]
+                }
+            }
+        );
+     };
+
     if (headerMenuColIndex >= 0) {
         var hideColumns = function(){
-            var newHiddenRanges = table.state.hiddenColumnRanges.slice();
             var selectedIndices = table.state.selectedIndices;
             var fromCol = selectedIndices[1]
             var toCol = selectedIndices[3];
@@ -981,14 +981,7 @@ var Table = React.createClass({
                 toCol = headerMenuColIndex;
             }
 
-            addHiddenColumn(fromCol, toCol, newHiddenRanges);
-            table.setState(
-            {
-                hiddenColumnRanges: newHiddenRanges,
-                selectedIndices: [-1, -1, -1, -1],
-                inHeaderMenu: -1
-            }
-            );
+            showOrHideColumns(fromCol, toCol, false);
             table.resetOverlay();
         };
         headerMenuProps.hideColumns = hideColumns;
@@ -1050,29 +1043,23 @@ var Table = React.createClass({
       filterProps.unapplyFilterCriteria = unapplyFilterCriteria;
     }
 
-    var setHiddenColumns = function(newHiddenRanges)
-     {
-        table.setState({hiddenColumnRanges: newHiddenRanges})
-     };
-
 
     var showHeaderMenu = function(x, y, colIndex) {
        table.setState(
          {
              overlayX: x,
              overlayY: y,
-            headerMenuColIndex: colIndex
+            headerMenuColIndex: colIndex,
+             lastAction: {
+                 name: 'showHeaderMenu',
+                 cells: [-1, colIndex, -1, colIndex]
+             }
          }
        );
     };
 
     var header = getProperty(table.props, "header", null);
     var headerCellRenderer = getProperty(table, "getHeaderCellRenderer", null);
-    var selectIndices = function(selectedIndices) {
-            table.setState({
-                selectedIndices:selectedIndices
-            });
-    };
 
     var filterCriteria = table.getFilterCriteria();
     var showFilterList = function(x, y, colIndex) {
@@ -1080,7 +1067,11 @@ var Table = React.createClass({
              {
                  overlayX: x,
                  overlayY: y,
-                 filterColIndex: colIndex
+                 filterColIndex: colIndex,
+                 lastAction: {
+                     name: 'showFilterList',
+                     cells: [-1, colIndex, -1, colIndex]
+                 }
              }
            );
     };
@@ -1101,34 +1092,40 @@ var Table = React.createClass({
           return true;
       };
 
-  var selectCell = function(rowIndex, colIndex) {
+  var selectCells = function(cells) {
         table.setState({
-                selectedIndices: [rowIndex, colIndex, rowIndex, colIndex]
+                selectedIndices: cells,
+                lastAction: {name: "select", cells:cells}
         });
   };
 
-
+    var columnsVisibility = getColumnsVisibility();
     return (
     <div onMouseDown={table.resetOverlay} className='table-outside-container'>
     <div className='table-div-container'>
       <div className='checkbox'> <label><input type="checkbox" onChange={isFilterChanged} value={this.state.isFilter}>Filter</input></label></div>
       <table onMouseUp={onMouseUp} className={tableClassName}>
-        <TableHeader header={header} headerCellRenderer={headerCellRenderer} setHiddenColumns={setHiddenColumns}
+        <TableHeader
+             header={header}
+             headerCellRenderer={headerCellRenderer}
+             showHideColumns={showHideColumns}
              showHeaderMenu={showHeaderMenu}
              filterCriteria={filterCriteria}
-             selectIndices={selectIndices}
+             selectCells={selectCells}
              headerMenuColIndex={headerMenuColIndex}
              showFilterList={showFilterList}
              isFilter={table.state.isFilter}
-             hiddenColumnRanges={table.state.hiddenColumnRanges}
+             columnsVisibility={columnsVisibility}
              selectedIndices={table.state.selectedIndices}
-           index={0} ref='header'
+             index={0}
+             ref='header'
          >
         </TableHeader>
         <TableDataBody
-            data={table.getData()}
-            isFilter={table.state.isFilter}
-            hiddenColumnRanges={table.state.hiddenColumnRanges}
+             className={tbodyClassName}
+             data={table.getData()}
+             isFilter={table.state.isFilter}
+             columnsVisibility={columnsVisibility}
              filterCriteria={filterCriteria}
              selectedIndices={table.state.selectedIndices}
              setCellDataChange={table.setCellData}
@@ -1137,7 +1134,7 @@ var Table = React.createClass({
              sortColIndex={sortColIndex}
              sortDirection={sortDirection}
              checkCriteria={checkCriteria}
-             selectCell={selectCell}
+             selectCells={selectCells}
              index={1}
              ref='body'>
         </TableDataBody>
