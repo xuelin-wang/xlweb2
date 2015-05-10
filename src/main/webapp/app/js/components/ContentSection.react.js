@@ -45,6 +45,17 @@ var ContentSection = React.createClass({
     for (var index = 0; index < 40; index++) {
         tableHeader.push("Column " + index);
     }
+
+    var tablePreheader0 = ['personal info', null, null, null];
+    for (var index = 0; index < 40; index++) {
+        if (index % 4 == 0)
+            tablePreheader0.push('Columns batch ' + (index / 4));
+        else
+            tablePreheader0.push(null);
+    }
+
+    var tablePreheaders = [tablePreheader0];
+
     var tableData = [];
     var row0 = ['Charles', 'w666666666666666666666666666666666ang', 'abcd efgh', 'M'];
     for (var index = 0; index < 40; index++) {
@@ -109,7 +120,7 @@ var ContentSection = React.createClass({
 
     return (
       <div className="content-section">
-        <Table header={tableHeader} data={tableDataList} getCellSpec={getCellSpec}>
+        <Table preheaders={tablePreheaders} header={tableHeader} data={tableDataList} getCellSpec={getCellSpec}>
         </Table>
       </div>
     );

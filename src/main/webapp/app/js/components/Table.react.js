@@ -519,7 +519,7 @@ var onMouseEnter = function(e) {
 
 
         return (
-          <td key={colIndex} onMouseDown={startSelectingCol} onMouseEnter={onMouseEnter}
+          <th key={colIndex} onMouseDown={startSelectingCol} onMouseEnter={onMouseEnter}
              onMouseOver={onMouseOver} onMouseOut={onMouseOut}  className={classNames}>
           <div style={tableHeaderCellStyle}>
           {leftAndDownArrow}
@@ -528,7 +528,7 @@ var onMouseEnter = function(e) {
           </div>
           {downAndRightArrow}
           </div>
-          </td>
+          </th>
         );
     };
 
@@ -547,9 +547,47 @@ var onMouseEnter = function(e) {
       null
     );
 
+    var preheaders = getProperty(tableHeader.props, "preheaders", null, null);
+    var renderedPreheaders;
+    if (preheaders == null)
+        renderedPreheaders = null;
+    else {
+        renderedPreheaders = preheaders.map(
+            function(preheader, preheaderIndex, preheaders) {
+                var renderedPreheaderCols = preheader.map(
+                    function(preheaderCol, preheaderColIndex, preheader) {
+                        if (preheaderCol == null)
+                            return null;
+                        var colSpan = 1;
+                        for (var colIndex = preheaderColIndex + 1; colIndex < preheader.length; colIndex++) {
+                            if (preheader[colIndex] != null)
+                                break;
+                            colSpan ++;
+                        }
+                        var preheaderColKey = 'preheader_' + preheaderIndex + '_' + preheaderColIndex;
+                        return (
+                            <th key={preheaderColKey} colSpan={colSpan}>
+                                {preheaderCol}
+                            </th>
+                        );
+                    },
+                    null
+                );
+                var preheaderKey = 'preheader_' + preheaderIndex;
+                return (
+                  <tr key={preheaderKey}>
+                      {renderedPreheaderCols}
+                  </tr>
+                );
+            },
+            null
+        );
+    }
+
     return (
       <thead>
-      <tr key={0}>
+      {renderedPreheaders}
+      <tr key='headerRow'>
         {renderedCols}
       </tr>
       </thead>
@@ -1166,6 +1204,8 @@ Perf.printWasted();
   };
 
     var columnsVisibility = getColumnsVisibility();
+
+    var preheaders = getProperty(table.props, 'preheaders', null, null);
     return (
     <div onMouseDown={table.resetOverlay} className='table-outside-container'>
     <div className='table-div-container'>
@@ -1173,6 +1213,7 @@ Perf.printWasted();
       <table onMouseUp={onMouseUp} className={tableClassName}>
         <TableHeader
              action={table.state.action}
+             preheaders={preheaders}
              header={header}
              headerCellRenderer={headerCellRenderer}
              showHideColumns={showHideColumns}
