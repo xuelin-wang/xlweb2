@@ -632,7 +632,9 @@ var TableDataRow = React.createClass({
           return true;
       else if (actionName == TableActions.setCellData) {
           var cells = action.cells;
-          return cells[0] == this.props.rowIndex;
+          var origRowIndex = cells[0];
+          var thisOrigRowIndex = this.props.row.get(0).get("rowIndex");
+          return origRowIndex == thisOrigRowIndex;
       }
       else if (actionName == TableActions.resetOverlay)
           return false;
@@ -652,7 +654,9 @@ var TableDataRow = React.createClass({
           return false;
       else if (actionName == TableActions.select) {
           var selectedIndices = this.props.selectedIndices;
-          return action.cells[0] == this.props.rowIndex || selectedIndices[0] == this.props.rowIndex;
+          var origRowIndex = action.cells[0];
+          var thisOrigRowIndex = this.props.row.get(0).get("rowIndex");
+          return origRowIndex == thisOrigRowIndex || selectedIndices[0] == thisOrigRowIndex;
       }
       else
           return true;
