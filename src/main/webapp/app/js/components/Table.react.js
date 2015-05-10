@@ -564,7 +564,7 @@ var checkSelected = function(rowIndex, colIndex, selectedIndices)
     var toRow = selectedIndices[2];
     var toCol = selectedIndices[3];
 
-    var inSelectedRows = (fromRow < 0 || fromRow >= 0 && fromRow <= rowIndex) && (toRow < 0 || toRow >= rowIndex);
+    var inSelectedRows = fromRow == rowIndex;
     var inSelectedCols = fromCol >= 0 && fromCol <= colIndex && (toCol < 0 || toCol >= colIndex);
     return inSelectedRows && inSelectedCols;
 }
@@ -587,7 +587,39 @@ var toCellStringKey = function(rowIndex, colIndex) {
 
 
 var TableDataRow = React.createClass({
-    mixins: [PureRenderMixin],
+  shouldComponentUpdate: function(nextProps, nextState) {
+      var action = getProperty(nextProps, 'action', null, null);
+      var actionName = action == null ? null : action.name;
+      if (actionName == null)
+          return true;
+      else if (actionName == TableActions.setCellData) {
+          var cells = action.cells;
+          return cells[0] == this.props.rowIndex;
+      }
+      else if (actionName == TableActions.resetOverlay)
+          return false;
+      else if (actionName == TableActions.showHideFilter)
+          return false;
+      else if (actionName == TableActions.showHideColumns)
+          return true;
+      else if (actionName == TableActions.sort)
+          return true;
+      else if (actionName == TableActions.applyFilterCriteria)
+          return true;
+      else if (actionName == TableActions.unapplyFilterCriteria)
+          return false;
+      else if (actionName == TableActions.showHeaderMenu)
+          return false;
+      else if (actionName == TableActions.showFilterList)
+          return false;
+      else if (actionName == TableActions.select) {
+          var selectedIndices = this.props.selectedIndices;
+          return action.cells[0] == this.props.rowIndex || selectedIndices[0] == this.props.rowIndex;
+      }
+      else
+          return true;
+  },
+
   render: function() {
     var tableDataRow = this;
     var defaultDataCellRenderer = function(col, colIndex, rowIndex, hidden, selectCells) {
@@ -755,6 +787,7 @@ var TableDataBody = React.createClass({
             var key = row.get(0).get("rowIndex") + 1;
             return (
                 <TableDataRow
+                    action={tableDataBody.props.action}
                     visible={visible} key={key} row={row} rowIndex={rowIndex}
                     setCellDataChange={tableDataBody.props.setCellDataChange}
                     getCellSpec={tableDataBody.props.getCellSpec}
@@ -775,6 +808,19 @@ var TableDataBody = React.createClass({
   }
 });
 
+var TableActions = {
+    setCellData: 'setCellData',
+    resetOverlay: 'resetOverlay',
+    showHideFilter: 'showHideFilter',
+    showHideColumns: 'showHideColumns',
+    sort: 'sort',
+    applyFilterCriteria: 'applyFilterCriteria',
+    unapplyFilterCriteria: 'unapplyFilterCriteria',
+    showHeaderMenu: 'showHeaderMenu',
+    showFilterList: 'showFilterList',
+    select: 'select'
+};
+
 var Table = React.createClass({
   mixins: [PureRenderMixin],
 //  shouldComponentUpdate: function(nextProps, nextState) {
@@ -789,21 +835,26 @@ var Table = React.createClass({
             headerMenuColIndex: -1,
             filterColIndex: -1,
             filterCriteria: null,
-            selectedIndices: [-1, -1, -1, -1]
+            selectedIndices: [-1, -1, -1, -1],
+            action: null
         };
     return initState;
   },
-
-//  shouldComponentUpdate: function(nextProps, nextState) {
-//      return true;
-//  },
 
   setCellData: function(rowIndex, colIndex, val) {
         var newData = getProperty(this.state, "data", this.props.data, this.props.data);
         var row = newData.get(rowIndex);
         row = row.set(colIndex + 1, val);
         newData = newData.set(rowIndex, row);
-        this.setState({data: newData});
+        this.setState(
+            {
+                data: newData,
+                action: {
+                    name: TableActions.setCellData,
+                    cells: [rowIndex, colIndex, rowIndex, colIndex]
+                }
+            }
+        );
   },
 
   checkColCriteria: function(colData, colCriteria) {
@@ -890,7 +941,10 @@ var Table = React.createClass({
   resetOverlay: function() {
         this.setState({
             filterColIndex: -1,
-            headerMenuColIndex: -1
+            headerMenuColIndex: -1,
+            action: {
+                name: TableActions.resetOverlay
+            }
         });
         this.refs.overlay.resetState();
   },
@@ -915,8 +969,8 @@ var Table = React.createClass({
 Perf.printWasted();
             table.setState({
                 isFilter: event.target.checked,
-                lastAction: {
-                    name: 'showHideFilter'
+                action: {
+                    name: TableActions.showHideFilter
                 }
             });
         }
@@ -925,8 +979,8 @@ Perf.printWasted();
                 isFilter: event.target.checked,
                 filterCriteria: null,
                 filterColIndex: -1,
-                lastAction: {
-                    name: 'showHideFilter'
+                action: {
+                    name: TableActions.showHideFilter
                 }
 
             });
@@ -963,8 +1017,8 @@ Perf.printWasted();
         table.setState(
             {
                 columnsVisibility: columnsVisibility,
-                lastAction: {
-                    name: 'showOrHideColumns',
+                action: {
+                    name: TableActions.showHideColumns,
                     cells: [-1, fromColIndex, -1, toColIndex]
                 }
             }
@@ -1003,7 +1057,10 @@ Perf.printWasted();
             table.setState(
                 {
                     sortColIndex: sortColIndex,
-                    sortDirection: sortDirection
+                    sortDirection: sortDirection,
+                    action: {
+                        name: TableActions.sort
+                    }
                 }
             );
             table.resetOverlay();
@@ -1027,14 +1084,20 @@ Perf.printWasted();
           table.setState(
               {
                   filterCriteria: newFilterCriteria,
-                filterColIndex: -1
+                  filterColIndex: -1,
+                  action: {
+                      name: TableActions.applyFilterCriteria
+                  }
               }
               );
       };
 
       var unapplyFilterCriteria = function() {
           table.setState({
-                filterColIndex: -1
+                filterColIndex: -1,
+                  action: {
+                      name: TableActions.unapplyFilterCriteria
+                  }
               });
       };
 
@@ -1050,8 +1113,8 @@ Perf.printWasted();
              overlayX: x,
              overlayY: y,
             headerMenuColIndex: colIndex,
-             lastAction: {
-                 name: 'showHeaderMenu',
+             action: {
+                 name: TableActions.showHeaderMenu,
                  cells: [-1, colIndex, -1, colIndex]
              }
          }
@@ -1068,8 +1131,8 @@ Perf.printWasted();
                  overlayX: x,
                  overlayY: y,
                  filterColIndex: colIndex,
-                 lastAction: {
-                     name: 'showFilterList',
+                 action: {
+                     name: TableActions.showFilterList,
                      cells: [-1, colIndex, -1, colIndex]
                  }
              }
@@ -1095,7 +1158,10 @@ Perf.printWasted();
   var selectCells = function(cells) {
         table.setState({
                 selectedIndices: cells,
-                lastAction: {name: "select", cells:cells}
+                action: {
+                    name: TableActions.select,
+                    cells:cells
+                }
         });
   };
 
@@ -1106,6 +1172,7 @@ Perf.printWasted();
       <div className='checkbox'> <label><input type="checkbox" onChange={isFilterChanged} value={this.state.isFilter}>Filter</input></label></div>
       <table onMouseUp={onMouseUp} className={tableClassName}>
         <TableHeader
+             action={table.state.action}
              header={header}
              headerCellRenderer={headerCellRenderer}
              showHideColumns={showHideColumns}
@@ -1122,6 +1189,7 @@ Perf.printWasted();
          >
         </TableHeader>
         <TableDataBody
+             action={table.state.action}
              className={tbodyClassName}
              data={table.getData()}
              isFilter={table.state.isFilter}
@@ -1143,6 +1211,7 @@ Perf.printWasted();
     <TableOverLay ref='overlay'
         {...headerMenuProps}
         {...filterProps}
+        action={table.state.action}
         overlayX={table.state.overlayX} overlayY={table.state.overlayY}
     >
     </TableOverLay>
